@@ -40,3 +40,7 @@ next-env.d.ts
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
+
+# GitHub workflows
+.github/workflows/*.yml
+.github/workflows/*.yaml
