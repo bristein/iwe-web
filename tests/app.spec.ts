@@ -19,7 +19,7 @@ test('homepage renders correctly', async ({ page }) => {
 test('page has expected text content', async ({ page }) => {
   await page.goto('/');
   
-  const heroText = page.locator('text=/Build Scalable/i');
+  const heroText = page.locator('text=/Build modern, scalable/i');
   await expect(heroText).toBeVisible();
   
   const ctaButton = page.locator('button:has-text("Get Started")');

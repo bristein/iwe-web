@@ -248,7 +248,6 @@ export default function Home() {
                 <Box 
                   w={10} 
                   h={10} 
-                  bg="gradient.to-br"
                   bgGradient="to-br"
                   gradientFrom="blue.500"
                   gradientTo="purple.600"
