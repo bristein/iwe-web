@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# Exit on error
+set -e
+
+echo "🔍 Running pre-commit checks..."
+
+# Run lint-staged for formatting and linting
+echo "📝 Formatting and linting staged files..."
+pnpm exec lint-staged
+
+# Run full lint check
+echo "🔎 Running ESLint on entire codebase..."
+pnpm run lint
+
+# Run build to ensure no TypeScript errors
+echo "🔨 Building application..."
+pnpm run build
+
+echo "✅ All pre-commit checks passed!"
