@@ -3,24 +3,27 @@ import { test, expect } from '@playwright/test';
 test('homepage renders correctly', async ({ page }) => {
   await page.goto('/');
   
-  await expect(page).toHaveTitle(/Create Next App/i);
+  await expect(page).toHaveTitle(/IWE Web - Modern Web Development Platform/i);
   
   const mainContent = page.locator('main');
   await expect(mainContent).toBeVisible();
   
-  const nextjsLogo = page.locator('img[alt*="Next.js"]').first();
-  await expect(nextjsLogo).toBeVisible();
+  const logo = page.locator('text=IW').first();
+  await expect(logo).toBeVisible();
   
   console.log('✅ Page loaded successfully');
   console.log('✅ Main content is visible');
-  console.log('✅ Next.js logo is present');
+  console.log('✅ Logo is present');
 });
 
 test('page has expected text content', async ({ page }) => {
   await page.goto('/');
   
-  const getStartedText = page.locator('text=/Get started/i');
-  await expect(getStartedText).toBeVisible();
+  const heroText = page.locator('text=/Build Scalable/i');
+  await expect(heroText).toBeVisible();
+  
+  const ctaButton = page.locator('button:has-text("Get Started")');
+  await expect(ctaButton).toBeVisible();
   
   console.log('✅ Page contains expected text content');
 });

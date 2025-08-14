@@ -11,9 +11,11 @@
       "Bash(npx @chakra-ui/cli:*)",
       "mcp__playwright__browser_click",
       "Bash(git push:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(gh pr view:*)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "defaultMode": "acceptEdits"
   }
 }
