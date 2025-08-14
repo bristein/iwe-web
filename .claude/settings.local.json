@@ -10,7 +10,8 @@
       "Bash(pnpm add:*)",
       "Bash(npx @chakra-ui/cli:*)",
       "mcp__playwright__browser_click",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git fetch:*)"
     ],
     "deny": [],
     "ask": []
