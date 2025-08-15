@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUsersCollection } from '@/lib/mongodb';
-import { CreateUserInput, User } from '@/lib/models/user';
+import { User } from '@/lib/models/user';
 import { hashPassword, generateToken, setAuthCookie, sanitizeUser } from '@/lib/auth';
 import { z } from 'zod';
 import { signupRateLimit } from '@/lib/rate-limit';
 import { authLogger } from '@/lib/logger';
+import { parseJsonWithSizeLimit, PayloadTooLargeError } from '@/lib/payload-limit';
 
 const signupSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -21,7 +22,17 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    // Parse JSON with size limit check
+    let body;
+    try {
+      body = await parseJsonWithSizeLimit(request);
+    } catch (error) {
+      if (error instanceof PayloadTooLargeError) {
+        return error.response;
+      }
+      // Handle JSON parsing errors
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    }
 
     // Validate input
     const validationResult = signupSchema.safeParse(body);
