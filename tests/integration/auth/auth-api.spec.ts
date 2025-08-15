@@ -6,7 +6,14 @@ import {
   DatabaseHelper,
   type TestUser,
 } from '../../utils/test-fixtures';
-import { API_ROUTES, ERROR_MESSAGES } from '../../../lib/test-constants';
+import { API_ROUTES } from '../../../lib/test-constants';
+
+// Type for validation error details
+interface ValidationDetail {
+  message: string;
+  path?: string[];
+  type?: string;
+}
 
 test.describe('Authentication - API Endpoints', () => {
   let testUsers: TestUser[] = [];
@@ -140,9 +147,11 @@ test.describe('Authentication - API Endpoints', () => {
       const errorBody = await response.json();
       expect(errorBody.error).toBe('Validation failed');
       expect(errorBody.details).toBeDefined();
-      expect(errorBody.details.some((detail) => detail.message.includes('Invalid email'))).toBe(
-        true
-      );
+      expect(
+        errorBody.details.some((detail: ValidationDetail) =>
+          detail.message.includes('Invalid email')
+        )
+      ).toBe(true);
     });
 
     test('should validate password requirements', async ({ page }) => {
@@ -158,9 +167,11 @@ test.describe('Authentication - API Endpoints', () => {
       const errorBody = await response.json();
       expect(errorBody.error).toBe('Validation failed');
       expect(errorBody.details).toBeDefined();
-      expect(errorBody.details.some((detail) => detail.message.includes('8 characters'))).toBe(
-        true
-      );
+      expect(
+        errorBody.details.some((detail: ValidationDetail) =>
+          detail.message.includes('8 characters')
+        )
+      ).toBe(true);
     });
 
     test('should validate username requirements', async ({ page }) => {
@@ -177,9 +188,11 @@ test.describe('Authentication - API Endpoints', () => {
       const errorBody = await response.json();
       expect(errorBody.error).toBe('Validation failed');
       expect(errorBody.details).toBeDefined();
-      expect(errorBody.details.some((detail) => detail.message.includes('3 characters'))).toBe(
-        true
-      );
+      expect(
+        errorBody.details.some((detail: ValidationDetail) =>
+          detail.message.includes('3 characters')
+        )
+      ).toBe(true);
     });
   });
 
@@ -270,9 +283,11 @@ test.describe('Authentication - API Endpoints', () => {
       const errorBody = await response.json();
       expect(errorBody.error).toBe('Validation failed');
       expect(errorBody.details).toBeDefined();
-      expect(errorBody.details.some((detail) => detail.message.includes('Invalid email'))).toBe(
-        true
-      );
+      expect(
+        errorBody.details.some((detail: ValidationDetail) =>
+          detail.message.includes('Invalid email')
+        )
+      ).toBe(true);
     });
   });
 
@@ -434,7 +449,7 @@ test.describe('Authentication - API Endpoints', () => {
       expect(response.status()).toBe(201);
 
       // Check for security headers
-      const headers = response.headers();
+      // const headers = response.headers();
       // Note: These would depend on your actual security headers implementation
       // expect(headers['x-frame-options']).toBeDefined();
       // expect(headers['x-content-type-options']).toBe('nosniff');
@@ -444,7 +459,7 @@ test.describe('Authentication - API Endpoints', () => {
       // This would test CORS headers for cross-origin requests
       // Implementation depends on your CORS configuration
       const response = await page.request.get(API_ROUTES.ME);
-      const headers = response.headers();
+      // const headers = response.headers();
 
       // CORS headers might be present
       // expect(headers['access-control-allow-origin']).toBeDefined();
