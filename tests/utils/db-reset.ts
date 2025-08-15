@@ -121,7 +121,7 @@ export const test = base.extend<any>({
    * Automatically reset database before each test
    */
   resetDatabase: [
-    async (_context: unknown, use: any) => {
+    async ({}, use: any) => {
       // Reset before test
       await DatabaseReset.resetToCleanState();
 
@@ -138,7 +138,7 @@ export const test = base.extend<any>({
    * Provide database utilities to tests
    */
 
-  db: async (_context: unknown, use: any) => {
+  db: async ({}, use: any) => {
     const testServer = getGlobalTestServer();
     const database = await testServer.getDatabase();
 
