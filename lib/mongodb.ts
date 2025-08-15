@@ -37,10 +37,33 @@ export async function getDatabase(): Promise<Db> {
   return client.db('iwe-backend');
 }
 
-// Helper function to get collections
+// Helper function to connect to database (for compatibility)
+export async function connectToDatabase() {
+  const client = await clientPromise;
+  const db = client.db('iwe-backend');
+  return { client, db };
+}
+
+// Track if indexes have been initialized
+let indexesInitialized = false;
+
+// Helper function to get collections with index initialization
 export async function getUsersCollection(): Promise<Collection> {
   const db = await getDatabase();
-  return db.collection('users');
+  const collection = db.collection('users');
+
+  // Ensure email unique index exists (prevents race condition)
+  if (!indexesInitialized) {
+    try {
+      await collection.createIndex({ email: 1 }, { unique: true });
+      indexesInitialized = true;
+    } catch (error) {
+      // Index might already exist, which is fine
+      console.log('Index creation info:', error);
+    }
+  }
+
+  return collection;
 }
 
 export async function getProjectsCollection(): Promise<Collection> {

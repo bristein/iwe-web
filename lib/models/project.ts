@@ -4,15 +4,16 @@ export interface Project {
   _id?: ObjectId;
   userId: ObjectId;
   title: string;
-  description: string;
-  genre: string;
-  status: 'planning' | 'drafting' | 'editing' | 'completed';
-  wordCount: number;
-  wordCountGoal: number;
+  description?: string;
+  genre?: string;
+  status: 'active' | 'draft' | 'completed' | 'archived' | 'planning' | 'drafting' | 'editing';
+  wordCount?: number;
+  wordCountGoal?: number;
+  tags?: string[];
   settings?: {
     isPublic?: boolean;
+    allowComments?: boolean;
     collaborators?: ObjectId[];
-    tags?: string[];
     language?: string;
   };
   metadata?: {
@@ -27,21 +28,27 @@ export interface Project {
 }
 
 export interface CreateProjectInput {
-  userId: string;
+  userId: string | ObjectId; // Accept both string and ObjectId
   title: string;
-  description: string;
-  genre: string;
+  description?: string;
+  genre?: string;
   wordCountGoal?: number;
-  status?: 'planning' | 'drafting' | 'editing' | 'completed';
+  status?: 'active' | 'draft' | 'completed' | 'archived' | 'planning' | 'drafting' | 'editing';
+  tags?: string[];
+  settings?: {
+    isPublic?: boolean;
+    allowComments?: boolean;
+  };
 }
 
 export interface UpdateProjectInput {
   title?: string;
   description?: string;
   genre?: string;
-  status?: 'planning' | 'drafting' | 'editing' | 'completed';
+  status?: 'active' | 'draft' | 'completed' | 'archived' | 'planning' | 'drafting' | 'editing';
   wordCount?: number;
   wordCountGoal?: number;
+  tags?: string[];
   settings?: Project['settings'];
   metadata?: Project['metadata'];
 }

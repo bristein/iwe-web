@@ -5,6 +5,7 @@ export interface User {
   email: string;
   name: string;
   username?: string;
+  password?: string; // Hashed password - never send to client
   avatar?: string;
   bio?: string;
   role: 'user' | 'admin' | 'editor';
@@ -25,8 +26,14 @@ export interface User {
 export interface CreateUserInput {
   email: string;
   name: string;
+  password: string; // Plain text password - will be hashed
   username?: string;
   role?: 'user' | 'admin' | 'editor';
+}
+
+export interface LoginInput {
+  email: string;
+  password: string;
 }
 
 export interface UpdateUserInput {
