@@ -1,5 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+/**
+ * Rate Limiting Strategy:
+ *
+ * Production Settings:
+ * - Login: 10 attempts per 5 minutes (prevents brute force while allowing retries)
+ * - Signup: 20 signups per hour per IP (allows testing and shared networks)
+ *
+ * Testing:
+ * - Set DISABLE_RATE_LIMIT=true to disable rate limiting for tests
+ * - Tests should use unique emails with timestamps to avoid conflicts
+ *
+ * Future Improvements:
+ * - Use Redis for distributed rate limiting in production
+ * - Implement per-email rate limiting for login attempts
+ * - Add exponential backoff for repeated failures
+ */
+
 interface RateLimitStore {
   [key: string]: {
     count: number;
@@ -38,6 +55,11 @@ export function rateLimit(config: Partial<RateLimitConfig> = {}) {
   const finalConfig = { ...defaultConfig, ...config };
 
   return async function rateLimitMiddleware(request: NextRequest): Promise<NextResponse | null> {
+    // Skip rate limiting if disabled via environment variable (for testing)
+    if (process.env.DISABLE_RATE_LIMIT === 'true') {
+      return null;
+    }
+
     // Generate rate limit key
     const keyGenerator =
       finalConfig.keyGenerator ||
@@ -91,13 +113,13 @@ export function rateLimit(config: Partial<RateLimitConfig> = {}) {
 
 // Specific rate limiters for different endpoints
 export const authRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 5, // 5 attempts per 15 minutes
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  maxRequests: 10, // 10 attempts per 5 minutes
   message: 'Too many authentication attempts, please try again later',
 });
 
 export const signupRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  maxRequests: 3, // 3 signups per hour per IP
+  maxRequests: 20, // 20 signups per hour per IP (reasonable for testing and shared networks)
   message: 'Too many signup attempts, please try again later',
 });
