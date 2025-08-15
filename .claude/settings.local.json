@@ -46,7 +46,10 @@
       "Bash(DISABLE_RATE_LIMIT=true node tests/debug-token.js)",
       "Bash(JWT_SECRET=test-jwt-secret-key-for-testing-only node tests/debug-token.js)",
       "Bash(git add:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh run view:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": [],

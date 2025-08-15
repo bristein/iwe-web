@@ -20,7 +20,7 @@ export class MongoDBTestServer {
 
   constructor(config: TestServerConfig = {}) {
     this.config = {
-      useDocker: process.env.CI === 'true' || config.useDocker === true,
+      useDocker: config.useDocker === true, // Only use Docker if explicitly requested
       dbName: config.dbName || 'iwe-test',
       port: config.port, // Don't set default port, let MongoDB choose
       mongoVersion: config.mongoVersion || '7.0.14',

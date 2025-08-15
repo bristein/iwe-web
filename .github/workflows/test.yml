@@ -28,8 +28,11 @@ env:
   NODE_ENV: test
   DISABLE_RATE_LIMIT: true
   JWT_SECRET: test-jwt-secret-key-for-testing-only
-  # Use Docker MongoDB in CI for production-like testing
-  USE_DOCKER_MONGODB: true
+  # MongoDB test server will use in-memory MongoDB by default
+  # Only set USE_DOCKER_MONGODB=true if Docker is properly configured
+  # Speed up mongodb-memory-server binary download
+  MONGOMS_DOWNLOAD_URL: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-7.0.14.tgz
+  MONGOMS_VERSION: 7.0.14
 
 jobs:
   test:
