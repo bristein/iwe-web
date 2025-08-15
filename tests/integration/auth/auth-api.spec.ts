@@ -458,7 +458,7 @@ test.describe('Authentication - API Endpoints', () => {
     test('should handle CORS properly', async ({ page }) => {
       // This would test CORS headers for cross-origin requests
       // Implementation depends on your CORS configuration
-      const response = await page.request.get(API_ROUTES.ME);
+      await page.request.get(API_ROUTES.ME);
       // const headers = response.headers();
 
       // CORS headers might be present
