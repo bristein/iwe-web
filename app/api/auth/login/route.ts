@@ -3,6 +3,8 @@ import { getUsersCollection } from '@/lib/mongodb';
 import { verifyPassword, generateToken, setAuthCookie, sanitizeUser } from '@/lib/auth';
 import { User } from '@/lib/models/user';
 import { z } from 'zod';
+import { authRateLimit } from '@/lib/rate-limit';
+import { authLogger } from '@/lib/logger';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -10,6 +12,12 @@ const loginSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Apply rate limiting
+  const rateLimitResponse = await authRateLimit(request);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   try {
     const body = await request.json();
 
@@ -29,6 +37,7 @@ export async function POST(request: NextRequest) {
     // Find user by email
     const user = await usersCollection.findOne({ email });
     if (!user) {
+      authLogger.info('Login attempt failed - user not found', { email });
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
@@ -46,6 +55,7 @@ export async function POST(request: NextRequest) {
     // Verify password
     const isPasswordValid = await verifyPassword(password, user.password);
     if (!isPasswordValid) {
+      authLogger.info('Login attempt failed - invalid password', { email });
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
@@ -61,18 +71,19 @@ export async function POST(request: NextRequest) {
     );
 
     // Generate JWT token
-    const token = generateToken(user as User);
+    const token = await generateToken(user as User);
 
     // Set auth cookie
     await setAuthCookie(token);
 
     // Return sanitized user data
+    authLogger.info('User logged in successfully', { userId: user._id?.toString(), email });
     return NextResponse.json({
       message: 'Login successful',
       user: sanitizeUser(user),
     });
   } catch (error) {
-    console.error('Login error:', error);
+    authLogger.error('Login error', error, { endpoint: '/api/auth/login' });
     return NextResponse.json({ error: 'An error occurred during login' }, { status: 500 });
   }
 }

@@ -1,9 +1,15 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { User } from './models/user';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+// Ensure JWT_SECRET is set in production (but not during build)
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production' && !process.env.NEXT_PHASE) {
+  console.warn('WARNING: JWT_SECRET environment variable should be set in production');
+}
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-not-for-production';
+const secret = new TextEncoder().encode(JWT_SECRET);
 const SALT_ROUNDS = 12;
 const TOKEN_EXPIRY = '7d';
 
@@ -21,21 +27,34 @@ export interface JWTPayload {
   role: string;
 }
 
-export function generateToken(user: User): string {
-  const payload: JWTPayload = {
+export async function generateToken(user: User): Promise<string> {
+  const payload = {
     userId: user._id!.toString(),
     email: user.email,
     role: user.role,
   };
 
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: TOKEN_EXPIRY,
-  });
+  return await new SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(TOKEN_EXPIRY)
+    .sign(secret);
 }
 
-export function verifyToken(token: string): JWTPayload {
+export async function verifyToken(token: string): Promise<JWTPayload> {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+    const { payload } = await jwtVerify(token, secret);
+
+    // Validate the payload has our expected fields
+    if (!payload.userId || !payload.email || !payload.role) {
+      throw new Error('Invalid token payload');
+    }
+
+    return {
+      userId: payload.userId as string,
+      email: payload.email as string,
+      role: payload.role as string,
+    };
   } catch (error) {
     throw new Error('Invalid or expired token');
   }
@@ -68,7 +87,7 @@ export async function getCurrentUser(): Promise<JWTPayload | null> {
   if (!token) return null;
 
   try {
-    return verifyToken(token);
+    return await verifyToken(token);
   } catch {
     return null;
   }

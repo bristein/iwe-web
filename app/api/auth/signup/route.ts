@@ -3,6 +3,8 @@ import { getUsersCollection } from '@/lib/mongodb';
 import { CreateUserInput, User } from '@/lib/models/user';
 import { hashPassword, generateToken, setAuthCookie, sanitizeUser } from '@/lib/auth';
 import { z } from 'zod';
+import { signupRateLimit } from '@/lib/rate-limit';
+import { authLogger } from '@/lib/logger';
 
 const signupSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -12,6 +14,12 @@ const signupSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Apply rate limiting
+  const rateLimitResponse = await signupRateLimit(request);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   try {
     const body = await request.json();
 
@@ -60,12 +68,13 @@ export async function POST(request: NextRequest) {
     const createdUser = { ...newUser, _id: result.insertedId };
 
     // Generate JWT token
-    const token = generateToken(createdUser);
+    const token = await generateToken(createdUser);
 
     // Set auth cookie
     await setAuthCookie(token);
 
     // Return sanitized user data
+    authLogger.info('New user created', { userId: result.insertedId.toString(), email });
     return NextResponse.json(
       {
         message: 'User created successfully',
@@ -74,7 +83,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Signup error:', error);
+    authLogger.error('Signup error', error, { endpoint: '/api/auth/signup' });
     return NextResponse.json({ error: 'An error occurred during signup' }, { status: 500 });
   }
 }

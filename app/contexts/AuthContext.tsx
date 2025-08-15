@@ -74,8 +74,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         setUser(data.user);
-        // Fetch user again to ensure auth state is synced
-        await fetchUser();
         return { success: true };
       } else {
         return { success: false, error: data.error || 'Login failed' };
@@ -105,8 +103,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         setUser(data.user);
-        // Fetch user again to ensure auth state is synced
-        await fetchUser();
         return { success: true };
       } else {
         return { success: false, error: data.error || 'Signup failed' };

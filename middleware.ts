@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifyToken } from '@/lib/auth-middleware';
+import { verifyToken } from '@/lib/auth';
 
 // Protected routes that require authentication
 const protectedRoutes = ['/portal', '/api/projects', '/api/users'];
@@ -70,7 +70,13 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public files (public directory)
+     * - Files with extensions (e.g., .png, .css, .js)
+     * - api/auth/* (authentication endpoints - must be public)
+     *
+     * This ensures middleware runs for:
+     * - Protected routes like /portal, /api/projects, /api/users
+     * - Auth pages like /login, /signup (for redirect logic)
+     * - But NOT for public auth API endpoints
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\..*|api/auth).*)',
   ],
