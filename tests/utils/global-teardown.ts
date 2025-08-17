@@ -25,9 +25,33 @@ async function globalTeardown() {
     // Close any open connections from db-cleanup utility
     await closeConnection();
 
+    // Ensure all MongoDB connections are closed before stopping the server
+    if (testServer && testServer.isRunning()) {
+      try {
+        // Explicitly close database connections
+        const client = await testServer.getClient();
+        await client.close();
+        console.log('📊 Closed MongoDB client connections');
+      } catch (err) {
+        console.log('⚠️  Could not close MongoDB connections:', err);
+      }
+    }
+
     // Stop MongoDB test server
     console.log('🛑 Stopping MongoDB test server...');
     await cleanupGlobalTestServer();
+
+    // Clean up any global MongoDB connections (important for CI)
+    if (global._mongoClientPromise) {
+      try {
+        const client = await global._mongoClientPromise;
+        await client.close();
+        global._mongoClientPromise = undefined;
+        console.log('📊 Closed global MongoDB client');
+      } catch (err) {
+        console.log('⚠️  Could not close global MongoDB client:', err);
+      }
+    }
 
     // Stop web server if it was started by Playwright tests (not by Vitest)
     // Only stop if we have a PID and Playwright started the server

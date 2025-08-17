@@ -1,6 +1,7 @@
 import { hashPassword } from '../../lib/auth';
 import { User } from '../../lib/models/user';
 import { ObjectId } from 'mongodb';
+import { TEST_PASSWORDS } from '../../lib/test-constants';
 
 /**
  * Test data factory for creating consistent test data for MongoDB
@@ -29,7 +30,7 @@ export class TestDataFactory {
       email: overrides.email || `test-user-${counter}-${timestamp}@example.com`,
       name: overrides.name || `Test User ${counter}`,
       username: overrides.username || `testuser${counter}`,
-      password: await hashPassword(overrides.password || 'Test123!@#'),
+      password: await hashPassword(overrides.password || TEST_PASSWORDS.VALID_STRONG),
       role: overrides.role || 'user',
       createdAt: overrides.createdAt || new Date(),
       updatedAt: overrides.updatedAt || new Date(),
@@ -117,7 +118,7 @@ export class TestDataFactory {
     const timestamp = Date.now();
     return {
       email: email || `test-auth-${timestamp}@example.com`,
-      password: password || 'Test123!@#',
+      password: password || TEST_PASSWORDS.VALID_STRONG,
       name: 'Auth Test User',
     };
   }

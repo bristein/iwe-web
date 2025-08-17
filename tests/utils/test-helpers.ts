@@ -3,6 +3,7 @@ import { getGlobalTestServer } from './mongodb-test-server';
 import { TestDataFactory } from './test-data-factory';
 import { ObjectId } from 'mongodb';
 import { User } from '../../lib/models/user';
+import { TEST_PASSWORDS } from '../../lib/test-constants';
 
 /**
  * Direct database access helpers for tests
@@ -323,7 +324,7 @@ export class ApiDatabaseHelpers {
     token: string;
   }> {
     const user = await DatabaseTestHelpers.insertUser();
-    const plainPassword = 'Test123!@#';
+    const plainPassword = TEST_PASSWORDS.VALID_STRONG;
 
     // Update user with known password
     await DatabaseTestHelpers.updateUser(user.email, {

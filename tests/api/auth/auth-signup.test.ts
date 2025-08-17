@@ -3,7 +3,7 @@ import { SuperTest, Test } from 'supertest';
 import { createApiClient, jsonRequest } from '../utils/api-client';
 import { TestUserFactory, TestDataFactory, ApiAssertions } from '../utils/test-factories';
 import { ApiAuthHelper } from '../utils/auth-helpers';
-import { API_ROUTES } from '../../../lib/test-constants';
+import { API_ROUTES, TEST_PASSWORDS } from '../../../lib/test-constants';
 
 describe('Authentication API - Signup Endpoints', () => {
   let client: SuperTest<Test>;
@@ -39,7 +39,7 @@ describe('Authentication API - Signup Endpoints', () => {
       const response = await jsonRequest(client, 'post', API_ROUTES.SIGNUP, payload);
 
       ApiAssertions.assertUserCreated(response, user);
-      
+
       const setCookieHeader = response.headers['set-cookie'];
       expect(setCookieHeader).toBeDefined();
       expect(setCookieHeader.toString()).toContain('auth-token');
@@ -90,11 +90,11 @@ describe('Authentication API - Signup Endpoints', () => {
       const testCases = [
         {
           name: 'missing name',
-          payload: { email: 'test@example.com', password: 'TestPassword123!' },
+          payload: { email: 'test@example.com', password: TEST_PASSWORDS.VALID },
         },
         {
           name: 'missing email',
-          payload: { name: 'Test User', password: 'TestPassword123!' },
+          payload: { name: 'Test User', password: TEST_PASSWORDS.VALID },
         },
         {
           name: 'missing password',
@@ -102,7 +102,7 @@ describe('Authentication API - Signup Endpoints', () => {
         },
         {
           name: 'empty name',
-          payload: { name: '', email: 'test@example.com', password: 'TestPassword123!' },
+          payload: { name: '', email: 'test@example.com', password: TEST_PASSWORDS.VALID },
         },
       ];
 
@@ -149,7 +149,7 @@ describe('Authentication API - Signup Endpoints', () => {
 
       for (const { payload } of maliciousPayloads) {
         const response = await jsonRequest(client, 'post', API_ROUTES.SIGNUP, payload);
-        
+
         // Should either validate and reject, or handle safely
         expect([400, 413]).toContain(response.status);
       }
@@ -161,7 +161,7 @@ describe('Authentication API - Signup Endpoints', () => {
       const payload = {
         name: largeString,
         email: 'test@example.com',
-        password: 'TestPassword123!',
+        password: TEST_PASSWORDS.VALID,
       };
 
       const response = await jsonRequest(client, 'post', API_ROUTES.SIGNUP, payload);
@@ -228,8 +228,8 @@ describe('Authentication API - Signup Endpoints', () => {
 
     test('should handle concurrent signup requests', async () => {
       const users = TestUserFactory.createMultiple(5, 'signup-concurrent');
-      
-      const promises = users.map(user => {
+
+      const promises = users.map((user) => {
         const payload = TestDataFactory.createSignupPayload(user);
         return jsonRequest(client, 'post', API_ROUTES.SIGNUP, payload);
       });

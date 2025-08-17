@@ -152,6 +152,14 @@ export const TEST_USER = {
   UPDATED_NAME: 'Updated User',
 } as const;
 
+// Test Passwords - Used for API and E2E tests
+export const TEST_PASSWORDS = {
+  VALID: 'TestPassword123!', // Meets all requirements
+  VALID_STRONG: 'Test123!@#', // Strong password with special chars
+  TOO_SHORT: '123', // Less than minimum length
+  WEAK: 'password123', // Weak password for basic tests
+} as const;
+
 // Helper function to generate unique test emails
 export function generateTestEmail(prefix: string = TEST_USER.EMAIL_PREFIX): string {
   const timestamp = Date.now();

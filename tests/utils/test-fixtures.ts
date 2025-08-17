@@ -1,5 +1,6 @@
 import { Page, expect } from '@playwright/test';
 import { cleanupTestUsers } from './db-cleanup';
+import { TEST_PASSWORDS } from '../../lib/test-constants';
 
 // Helper function to get worker ID for test isolation
 function getWorkerId(): string {
@@ -34,7 +35,7 @@ export class TestUserFactory {
     return {
       name: options.name || `Test User ${prefix}`,
       email: options.email || generateWorkerScopedEmail(prefix),
-      password: options.password || 'TestPassword123!',
+      password: options.password || TEST_PASSWORDS.VALID,
       username: 'username' in options ? options.username : `${prefix}user`,
     };
   }

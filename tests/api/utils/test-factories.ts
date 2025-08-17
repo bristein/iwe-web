@@ -1,5 +1,5 @@
 import { expect } from 'vitest';
-import { generateTestEmail } from '../../../lib/test-constants';
+import { generateTestEmail, TEST_PASSWORDS } from '../../../lib/test-constants';
 import { registerTestUser } from '../setup/test-setup';
 
 // Type definitions for API responses
@@ -42,7 +42,7 @@ export class TestUserFactory {
     const user: TestUser = {
       name: options.name || `API Test User ${prefix}`,
       email: options.email || generateTestEmail(prefix),
-      password: options.password || 'TestPassword123!',
+      password: options.password || TEST_PASSWORDS.VALID,
       username: 'username' in options ? options.username : `${prefix}user`,
     };
 
@@ -66,7 +66,7 @@ export class TestUserFactory {
     return {
       name: options.name || `API Manual User ${prefix}`,
       email: options.email || generateTestEmail(prefix),
-      password: options.password || 'TestPassword123!',
+      password: options.password || TEST_PASSWORDS.VALID,
       username: options.username || `${prefix}user`,
     };
   }
@@ -114,7 +114,7 @@ export class TestDataFactory {
         payload: {
           name: 'Test User',
           email: `invalid-email-${timestamp}`,
-          password: 'TestPassword123!',
+          password: TEST_PASSWORDS.VALID,
         },
       },
       {
@@ -122,7 +122,7 @@ export class TestDataFactory {
         payload: {
           name: 'Test User',
           email: `test-${timestamp}@`,
-          password: 'TestPassword123!',
+          password: TEST_PASSWORDS.VALID,
         },
       },
       {
@@ -130,7 +130,7 @@ export class TestDataFactory {
         payload: {
           name: 'Test User',
           email: '@example.com',
-          password: 'TestPassword123!',
+          password: TEST_PASSWORDS.VALID,
         },
       },
       {
@@ -138,7 +138,7 @@ export class TestDataFactory {
         payload: {
           name: 'Test User',
           email: '',
-          password: 'TestPassword123!',
+          password: TEST_PASSWORDS.VALID,
         },
       },
     ];
@@ -147,7 +147,10 @@ export class TestDataFactory {
   /**
    * Create invalid password payloads for testing validation
    */
-  static createInvalidPasswordPayloads(): Array<{ name: string; payload: Record<string, unknown> }> {
+  static createInvalidPasswordPayloads(): Array<{
+    name: string;
+    payload: Record<string, unknown>;
+  }> {
     return [
       {
         name: 'too short (< 8 chars)',
@@ -186,7 +189,7 @@ export class TestDataFactory {
         payload: {
           name: 'Test User',
           email: "test@example.com'; DROP TABLE users; --",
-          password: 'TestPassword123!',
+          password: TEST_PASSWORDS.VALID,
         },
       },
       {
@@ -194,7 +197,7 @@ export class TestDataFactory {
         payload: {
           name: '<script>alert("xss")</script>',
           email: generateTestEmail('malicious-xss'),
-          password: 'TestPassword123!',
+          password: TEST_PASSWORDS.VALID,
         },
       },
       {
@@ -202,7 +205,7 @@ export class TestDataFactory {
         payload: {
           name: 'Test User',
           email: { $ne: null },
-          password: 'TestPassword123!',
+          password: TEST_PASSWORDS.VALID,
         },
       },
       {
@@ -210,7 +213,7 @@ export class TestDataFactory {
         payload: {
           name: 'a'.repeat(10000),
           email: generateTestEmail('malicious-long'),
-          password: 'TestPassword123!',
+          password: TEST_PASSWORDS.VALID,
         },
       },
     ];
@@ -231,7 +234,7 @@ export class ApiAssertions {
     expect(response.body.user.name).toBe(expectedUser.name);
     expect(response.body.user.role).toBe('user');
     expect('password' in response.body.user).toBe(false);
-    
+
     if (expectedUser.username) {
       expect(response.body.user.username).toBe(expectedUser.username);
     }
@@ -254,16 +257,19 @@ export class ApiAssertions {
   static assertValidationError(response: ApiResponse, expectedMessage?: string): void {
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('Validation failed');
-    
+
     if (expectedMessage) {
       expect(response.body.details).toBeDefined();
-      const hasExpectedMessage = Array.isArray(response.body.details) && 
-        response.body.details.some((detail: unknown) =>
-        typeof detail === 'object' && detail !== null && 
-        'message' in detail && 
-        typeof (detail as { message: string }).message === 'string' &&
-        (detail as { message: string }).message.includes(expectedMessage)
-      );
+      const hasExpectedMessage =
+        Array.isArray(response.body.details) &&
+        response.body.details.some(
+          (detail: unknown) =>
+            typeof detail === 'object' &&
+            detail !== null &&
+            'message' in detail &&
+            typeof (detail as { message: string }).message === 'string' &&
+            (detail as { message: string }).message.includes(expectedMessage)
+        );
       expect(hasExpectedMessage).toBe(true);
     }
   }

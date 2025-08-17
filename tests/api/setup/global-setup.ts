@@ -180,7 +180,31 @@ export async function teardown() {
     const testServer = getGlobalTestServer();
     if (testServer && testServer.isRunning()) {
       console.log('🗄️  Stopping MongoDB test server...');
+
+      // Explicitly close all connections before stopping
+      try {
+        const client = await testServer.getClient();
+        await client.close();
+        console.log('📊 Closed MongoDB client connections');
+      } catch (err) {
+        console.log('⚠️  Could not close MongoDB connections:', err);
+      }
+
+      // Now stop the server
       await testServer.stop();
+      console.log('✅ MongoDB test server stopped');
+    }
+
+    // Ensure all MongoDB connections are closed (especially important in CI)
+    if (global._mongoClientPromise) {
+      try {
+        const client = await global._mongoClientPromise;
+        await client.close();
+        global._mongoClientPromise = undefined;
+        console.log('📊 Closed global MongoDB client');
+      } catch (err) {
+        console.log('⚠️  Could not close global MongoDB client:', err);
+      }
     }
 
     console.log('✅ Vitest API test global teardown completed successfully');
