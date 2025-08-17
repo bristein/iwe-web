@@ -44,15 +44,31 @@ export async function closeConnection(): Promise<void> {
  */
 export async function cleanupTestUsers(options: CleanupOptions = {}) {
   const client = await getClient();
-  const db = client.db('iwe-backend');
+  // Use the correct database name based on environment
+  const dbName = process.env.NODE_ENV === 'test' ? 'iwe-test' : 'iwe-backend';
+  const db = client.db(dbName);
   const usersCollection = db.collection('users');
 
   let filter: Record<string, unknown> = {};
 
   if (options.deleteAll) {
-    // Delete all test users (be careful with this!)
+    // Delete all test users - use more specific patterns to avoid accidents
     filter = {
-      $or: [{ email: { $regex: /^test/i } }, { email: { $regex: /@example\.com$/i } }],
+      $or: [
+        // Test users created by our test suite
+        { email: { $regex: /^test.*@.*\.test$/i } },
+        { email: { $regex: /^testuser\d+@example\.com$/i } },
+        { email: { $regex: /^playwright-test-.*@example\.com$/i } },
+        // Worker-scoped test users for parallel execution
+        { email: { $regex: /^test.*-w\d+-\d{13}-\d{1,3}@example\.com$/i } },
+        // Users with test metadata (if we add this field)
+        { isTestUser: true },
+        { createdBy: 'test-automation' },
+        // Standard example.com emails (RFC 2606 reserved domain)
+        { email: { $regex: /@example\.(com|org|net)$/i } },
+        // Test pattern with timestamp
+        { email: { $regex: /^test-\d{13}@/i } },
+      ],
     };
   } else {
     // Build filter based on provided options
@@ -88,12 +104,25 @@ export async function cleanupTestUsers(options: CleanupOptions = {}) {
  */
 export async function getTestUsers() {
   const client = await getClient();
-  const db = client.db('iwe-backend');
+  // Use the correct database name based on environment
+  const dbName = process.env.NODE_ENV === 'test' ? 'iwe-test' : 'iwe-backend';
+  const db = client.db(dbName);
   const usersCollection = db.collection('users');
 
   const users = await usersCollection
     .find({
-      $or: [{ email: { $regex: /^test/i } }, { email: { $regex: /@example\.com$/i } }],
+      $or: [
+        // Use same specific patterns as cleanup
+        { email: { $regex: /^test.*@.*\.test$/i } },
+        { email: { $regex: /^testuser\d+@example\.com$/i } },
+        { email: { $regex: /^playwright-test-.*@example\.com$/i } },
+        // Worker-scoped test users for parallel execution
+        { email: { $regex: /^test.*-w\d+-\d{13}-\d{1,3}@example\.com$/i } },
+        { isTestUser: true },
+        { createdBy: 'test-automation' },
+        { email: { $regex: /@example\.(com|org|net)$/i } },
+        { email: { $regex: /^test-\d{13}@/i } },
+      ],
     })
     .toArray();
 

@@ -9,8 +9,17 @@ import { parseJsonWithSizeLimit, PayloadTooLargeError } from '@/lib/payload-limi
 
 const signupSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  name: z.string().min(1, 'Name is required'),
+  password: z.string().min(8, 'Password must be at least 8 characters').refine(
+    (val) => val.trim().length >= 8,
+    'Password must be at least 8 characters'
+  ),
+  name: z.string()
+    .min(1, 'Name is required')
+    .max(100, 'Name must be 100 characters or less')
+    .refine(
+      (val) => !/<[^>]*>/g.test(val),
+      'Name cannot contain HTML tags'
+    ),
   username: z.string().min(3, 'Username must be at least 3 characters').optional(),
 });
 
@@ -68,7 +77,7 @@ export async function POST(request: NextRequest) {
     const newUser: User = {
       email,
       name,
-      username,
+      ...(username && { username }), // Only include username if it's provided
       password: hashedPassword,
       role: 'user',
       createdAt: new Date(),
@@ -86,15 +95,29 @@ export async function POST(request: NextRequest) {
 
     // Return sanitized user data
     authLogger.info('New user created', { userId: result.insertedId.toString(), email });
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         message: 'User created successfully',
         user: sanitizeUser(createdUser),
       },
       { status: 201 }
     );
+    
+    // Add security headers
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+    
+    return response;
   } catch (error) {
     authLogger.error('Signup error', error, { endpoint: '/api/auth/signup' });
-    return NextResponse.json({ error: 'An error occurred during signup' }, { status: 500 });
+    const response = NextResponse.json({ error: 'An error occurred during signup' }, { status: 500 });
+    
+    // Add security headers even for error responses
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+    
+    return response;
   }
 }

@@ -1,4 +1,57 @@
 import { getGlobalTestServer } from './mongodb-test-server';
+import { spawn } from 'child_process';
+import * as http from 'http';
+
+let webServerProcess: import('child_process').ChildProcess | null = null;
+
+async function waitForServer(url: string, timeout: number = 120000): Promise<void> {
+  const startTime = Date.now();
+  const healthUrl = `${url}/api/health`;
+  
+  while (Date.now() - startTime < timeout) {
+    try {
+      // First check if server is responding
+      await new Promise((resolve, reject) => {
+        const request = http.get(url, (res) => {
+          if (res.statusCode === 200 || res.statusCode === 404) {
+            resolve(true);
+          } else {
+            reject(new Error(`Status code: ${res.statusCode}`));
+          }
+        });
+        request.on('error', reject);
+        request.setTimeout(1000);
+      });
+      
+      // Then check health endpoint for database connectivity
+      await new Promise((resolve, reject) => {
+        http.get(healthUrl, (res) => {
+          let data = '';
+          res.on('data', (chunk) => { data += chunk; });
+          res.on('end', () => {
+            try {
+              const health = JSON.parse(data);
+              if (res.statusCode === 200 && health.database === 'connected') {
+                resolve(true);
+              } else {
+                reject(new Error(`Health check failed: ${data}`));
+              }
+            } catch {
+              reject(new Error(`Invalid health response: ${data}`));
+            }
+          });
+        }).on('error', reject).setTimeout(1000);
+      });
+      
+      return; // Server is ready with database connected
+    } catch {
+      // Server not ready yet, wait a bit
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+  
+  throw new Error(`Server at ${url} did not become healthy within ${timeout}ms`);
+}
 
 async function globalSetup() {
   console.log('🚀 Starting global test setup...');
@@ -33,9 +86,65 @@ async function globalSetup() {
       throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
     }
 
+    // Start the Next.js dev server
+    // Check if server is already running (only reuse in non-CI environments)
+    const reuseExistingServer = !process.env.CI;
+    
+    if (reuseExistingServer) {
+      try {
+        await waitForServer('http://localhost:3000', 1000);
+        console.log('📡 Web server already running, reusing existing server');
+        return; // Exit early if server is already running
+      } catch {
+        // Server not running, will start it below
+      }
+    }
+    
+    // Start the server (always in CI, or when not running locally)
+    console.log('🌐 Starting Next.js web server...');
+    
+    webServerProcess = spawn('pnpm', ['run', 'dev'], {
+      env: {
+        ...process.env,
+        DISABLE_RATE_LIMIT: 'true',
+        NODE_ENV: 'test',
+        JWT_SECRET: process.env.JWT_SECRET || 'test-jwt-secret-key-for-testing-only',
+        MONGODB_URI: mongoUri,
+      },
+      stdio: 'pipe',
+      shell: true,
+    });
+
+    // Store the process ID for cleanup
+    if (webServerProcess.pid) {
+      process.env.TEST_WEB_SERVER_PID = webServerProcess.pid.toString();
+    }
+
+    // Wait for the server to be ready
+    await waitForServer('http://localhost:3000');
+    console.log('✅ Web server started successfully');
+
     console.log('✅ Global setup completed successfully');
   } catch (error) {
     console.error('❌ Global setup failed:', error);
+    
+    // Clean up if setup failed
+    try {
+      if (webServerProcess) {
+        console.log('Cleaning up web server process...');
+        webServerProcess.kill('SIGTERM');
+      }
+      
+      // Also clean up MongoDB test server if it was started
+      const testServer = getGlobalTestServer();
+      if (testServer && testServer.isRunning()) {
+        console.log('Cleaning up MongoDB test server...');
+        await testServer.stop();
+      }
+    } catch (cleanupError) {
+      console.error('Error during cleanup:', cleanupError);
+    }
+    
     throw error;
   }
 }

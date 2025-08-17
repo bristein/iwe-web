@@ -252,3 +252,5 @@ Required environment variables:
 - The portal is the main dashboard for logged-in users to manage their writing projects
 - AI agent integration with Mastra is planned for future implementation
 - never use the --no-verify flag when committing code, always fix failing builds or tests
+
+- when analyzing failing tests, fixing tests, or updating tests or the test framework in any way, use @agent-test-engineer-sdet

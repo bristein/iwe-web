@@ -2,14 +2,30 @@ import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { User } from './models/user';
+import { getJwtSecret, validateAuthConfig, getAuthCookieOptions } from './auth-config';
 
-// Ensure JWT_SECRET is set in production (but not during build)
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production' && !process.env.NEXT_PHASE) {
-  console.warn('WARNING: JWT_SECRET environment variable should be set in production');
+// Validate auth configuration on module load (except during build)
+if (!process.env.NEXT_PHASE) {
+  try {
+    validateAuthConfig();
+  } catch (error) {
+    if (process.env.NODE_ENV === 'production') {
+      // In production, fail fast on configuration errors
+      throw error;
+    } else {
+      // In development/test, log warning but continue
+      console.warn('Auth configuration warning:', error);
+    }
+  }
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-not-for-production';
-const secret = new TextEncoder().encode(JWT_SECRET);
+const getSecret = () => {
+  const jwtSecret = process.env.NEXT_PHASE 
+    ? (process.env.JWT_SECRET || 'build-time-placeholder')
+    : getJwtSecret();
+  return new TextEncoder().encode(jwtSecret);
+};
+
 const SALT_ROUNDS = 12;
 const TOKEN_EXPIRY = '7d';
 
@@ -34,16 +50,20 @@ export async function generateToken(user: User): Promise<string> {
     role: user.role,
   };
 
+  // Generate unique jti to ensure tokens are unique even for same user at same time
+  const jti = `${user._id!.toString()}-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(TOKEN_EXPIRY)
-    .sign(secret);
+    .setJti(jti) // Add unique JWT ID
+    .sign(getSecret());
 }
 
 export async function verifyToken(token: string): Promise<JWTPayload> {
   try {
-    const { payload } = await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, getSecret());
 
     // Validate the payload has our expected fields
     if (!payload.userId || !payload.email || !payload.role) {
@@ -55,20 +75,14 @@ export async function verifyToken(token: string): Promise<JWTPayload> {
       email: payload.email as string,
       role: payload.role as string,
     };
-  } catch (error) {
+  } catch {
     throw new Error('Invalid or expired token');
   }
 }
 
 export async function setAuthCookie(token: string) {
   const cookieStore = await cookies();
-  cookieStore.set('auth-token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-    path: '/',
-  });
+  cookieStore.set('auth-token', token, getAuthCookieOptions());
 }
 
 export async function removeAuthCookie() {

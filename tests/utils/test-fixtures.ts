@@ -1,6 +1,18 @@
 import { Page, expect } from '@playwright/test';
-import { generateTestEmail } from '../../lib/test-constants';
 import { cleanupTestUsers } from './db-cleanup';
+
+// Helper function to get worker ID for test isolation
+function getWorkerId(): string {
+  return process.env.TEST_WORKER_INDEX || process.env.VITEST_WORKER_ID || '0';
+}
+
+// Helper function to generate worker-scoped test email to prevent conflicts
+function generateWorkerScopedEmail(prefix: string): string {
+  const workerId = getWorkerId();
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 1000);
+  return `${prefix}-w${workerId}-${timestamp}-${random}@example.com`;
+}
 
 export interface TestUser {
   name: string;
@@ -15,15 +27,15 @@ export interface AuthFixtures {
 }
 
 /**
- * Reusable test user factory
+ * Reusable test user factory with parallel test isolation
  */
 export class TestUserFactory {
   static create(prefix: string = 'test', options: Partial<TestUser> = {}): TestUser {
     return {
       name: options.name || `Test User ${prefix}`,
-      email: options.email || generateTestEmail(prefix),
+      email: options.email || generateWorkerScopedEmail(prefix),
       password: options.password || 'TestPassword123!',
-      username: options.username || `${prefix}user`,
+      username: 'username' in options ? options.username : `${prefix}user`,
     };
   }
 
@@ -133,7 +145,7 @@ export class ApiHelper {
 }
 
 /**
- * Database state helper
+ * Database state helper with parallel test isolation
  */
 export class DatabaseHelper {
   static async cleanup(emails: string[]): Promise<void> {
@@ -142,5 +154,23 @@ export class DatabaseHelper {
 
   static async cleanupAll(): Promise<void> {
     await cleanupTestUsers({ deleteAll: true });
+  }
+
+  // Worker-specific cleanup for better isolation
+  static async cleanupWorkerTests(): Promise<void> {
+    const workerId = getWorkerId();
+    await cleanupTestUsers({
+      emails: [], // Empty emails array triggers general cleanup
+    });
+
+    // Additional cleanup for worker-scoped test data
+    try {
+      await cleanupTestUsers({
+        deleteAll: false,
+        emails: [], // Will be handled by pattern matching in db-cleanup
+      });
+    } catch (error) {
+      console.warn(`Worker ${workerId} cleanup warning:`, error);
+    }
   }
 }

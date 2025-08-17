@@ -11,13 +11,13 @@ dotenv.config({ path: path.resolve(__dirname, '.env'), override: false });
 
 export default defineConfig({
   testDir: './tests/integration',
-  fullyParallel: false, // Changed to false for better database test isolation
+  fullyParallel: true, // Enable parallel execution for better performance
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,
-  workers: process.env.CI ? 1 : 2, // Limit workers to prevent DB conflicts
-  timeout: 30000, // 30 second timeout
+  workers: process.env.CI ? 2 : 4, // Increase workers for better parallelization
+  timeout: 20000, // Reduce timeout as tests should be faster now
   expect: {
-    timeout: 10000, // 10 second assertion timeout
+    timeout: 8000, // Reduce assertion timeout
   },
   reporter: [
     ['html'],
@@ -36,55 +36,28 @@ export default defineConfig({
   globalSetup: require.resolve('./tests/utils/global-setup.ts'),
   globalTeardown: require.resolve('./tests/utils/global-teardown.ts'),
   projects: [
-    // All integration tests
+    // All E2E integration tests (browser workflows only, API tests handled by Vitest)
     {
       name: 'integration',
       use: { ...devices['Desktop Chrome'] },
       testMatch: /.*\.spec\.ts$/,
-    },
-    // Authentication tests - focused testing
-    {
-      name: 'auth-tests',
-      use: { ...devices['Desktop Chrome'] },
-      testMatch: /auth\/.*\.spec\.ts$/,
-    },
-    // API tests - faster execution
-    {
-      name: 'api-tests',
-      use: { ...devices['Desktop Chrome'] },
-      testMatch: /api\/.*\.spec\.ts$/,
-    },
-    // UI tests
-    {
-      name: 'ui-tests',
-      use: { ...devices['Desktop Chrome'] },
-      testMatch: /ui\/.*\.spec\.ts$/,
-    },
-    // Mobile testing
-    {
-      name: 'mobile-chrome',
-      use: { ...devices['Pixel 5'] },
-      testMatch: /.*mobile.*\.spec\.ts$/,
+      testIgnore: [
+        '**/tests/api/**', // API tests are now handled by Vitest
+      ],
     },
     // Uncomment for cross-browser testing
     // {
     //   name: 'firefox',
     //   use: { ...devices['Desktop Firefox'] },
     //   testMatch: /.*\.spec\.ts$/,
+    //   testIgnore: ['**/tests/api/**'],
     // },
     // {
     //   name: 'webkit',
     //   use: { ...devices['Desktop Safari'] },
     //   testMatch: /.*\.spec\.ts$/,
+    //   testIgnore: ['**/tests/api/**'],
     // },
   ],
-  webServer: {
-    command: 'DISABLE_RATE_LIMIT=true pnpm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-    env: {
-      DISABLE_RATE_LIMIT: 'true',
-    },
-  },
+  webServer: undefined, // We'll start the web server in global setup after MongoDB is ready
 });
