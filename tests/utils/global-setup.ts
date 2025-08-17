@@ -1,6 +1,7 @@
 import { getGlobalTestServer } from './mongodb-test-server';
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import * as http from 'http';
+import * as os from 'os';
 
 let webServerProcess: import('child_process').ChildProcess | null = null;
 
@@ -62,26 +63,45 @@ async function globalSetup() {
   console.log('🚀 Starting global test setup...');
 
   try {
-    // Start MongoDB test server
-    console.log('🏁 Starting MongoDB test server...');
+    // Check if a web server is already running (e.g., from Vitest tests)
+    let serverAlreadyRunning = false;
+    try {
+      await waitForServer('http://localhost:3000', 2000);
+      serverAlreadyRunning = true;
+      console.log('📡 Web server already running, reusing existing server');
+    } catch {
+      // Server not running, we'll start it
+    }
+
+    // Start MongoDB test server only if not already running
+    console.log('🏁 Checking MongoDB test server...');
     const testServer = getGlobalTestServer({
       enableLogging: process.env.DEBUG === 'true',
       useDocker: process.env.USE_DOCKER_MONGODB === 'true',
     });
 
-    const mongoUri = await testServer.start();
+    let mongoUri = process.env.MONGODB_URI || process.env.MONGODB_TEST_URI;
 
-    // Set the MongoDB URI for tests to use
-    process.env.MONGODB_URI = mongoUri;
-    process.env.MONGODB_TEST_URI = mongoUri;
+    if (!mongoUri || !testServer.isRunning()) {
+      console.log('🏁 Starting MongoDB test server...');
+      mongoUri = await testServer.start();
 
-    // Create indexes for better performance
-    await testServer.createIndexes();
+      // Set the MongoDB URI for tests to use
+      process.env.MONGODB_URI = mongoUri;
+      process.env.MONGODB_TEST_URI = mongoUri;
 
-    // Clear any existing test data
-    await testServer.clearDatabase();
+      // Create indexes for better performance
+      await testServer.createIndexes();
 
-    console.log(`📊 MongoDB test server running at: ${mongoUri}`);
+      // Clear any existing test data
+      await testServer.clearDatabase();
+
+      console.log(`📊 MongoDB test server running at: ${mongoUri}`);
+    } else {
+      console.log(`📊 MongoDB test server already running at: ${mongoUri}`);
+      // Still clear the database for test isolation
+      await testServer.clearDatabase();
+    }
 
     // Verify other required environment variables
     const requiredEnvVars = ['JWT_SECRET'];
@@ -91,31 +111,32 @@ async function globalSetup() {
       throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
     }
 
-    // Start the Next.js dev server
-    // Always start a fresh server for tests to ensure correct database connection
-    // Note: Reusing existing servers can cause database connection issues
-    console.log('🌐 Starting Next.js web server...');
+    // Only start the Next.js dev server if it's not already running
+    if (!serverAlreadyRunning) {
+      console.log('🌐 Starting Next.js web server...');
 
-    webServerProcess = spawn('pnpm', ['run', 'dev'], {
-      env: {
-        ...process.env,
-        DISABLE_RATE_LIMIT: 'true',
-        NODE_ENV: 'test',
-        JWT_SECRET: process.env.JWT_SECRET || 'test-jwt-secret-key-for-testing-only',
-        MONGODB_URI: mongoUri,
-      },
-      stdio: 'pipe',
-      shell: true,
-    });
+      webServerProcess = spawn('pnpm', ['run', 'dev'], {
+        env: {
+          ...process.env,
+          DISABLE_RATE_LIMIT: 'true',
+          NODE_ENV: 'test',
+          JWT_SECRET: process.env.JWT_SECRET || 'test-jwt-secret-key-for-testing-only',
+          MONGODB_URI: mongoUri,
+        },
+        stdio: 'pipe',
+        shell: true,
+      });
 
-    // Store the process ID for cleanup
-    if (webServerProcess.pid) {
-      process.env.TEST_WEB_SERVER_PID = webServerProcess.pid.toString();
+      // Store the process ID for cleanup
+      if (webServerProcess.pid) {
+        process.env.TEST_WEB_SERVER_PID = webServerProcess.pid.toString();
+        process.env.PLAYWRIGHT_STARTED_SERVER = 'true'; // Mark that Playwright started this server
+      }
+
+      // Wait for the server to be ready
+      await waitForServer('http://localhost:3000');
+      console.log('✅ Web server started successfully');
     }
-
-    // Wait for the server to be ready
-    await waitForServer('http://localhost:3000');
-    console.log('✅ Web server started successfully');
 
     console.log('✅ Global setup completed successfully');
   } catch (error) {
@@ -123,9 +144,16 @@ async function globalSetup() {
 
     // Clean up if setup failed
     try {
-      if (webServerProcess) {
+      if (webServerProcess && webServerProcess.pid) {
         console.log('Cleaning up web server process...');
-        webServerProcess.kill('SIGTERM');
+        try {
+          webServerProcess.kill('SIGTERM');
+        } catch {}
+        // Also kill any Next.js processes
+        try {
+          execSync('pkill -f "next dev" || true', { stdio: 'ignore' });
+          execSync('pkill -f "next-server" || true', { stdio: 'ignore' });
+        } catch {}
       }
 
       // Also clean up MongoDB test server if it was started

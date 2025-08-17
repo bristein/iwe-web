@@ -1,6 +1,7 @@
 import { getGlobalTestServer } from '../../utils/mongodb-test-server';
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import * as http from 'http';
+import * as os from 'os';
 
 let webServerProcess: import('child_process').ChildProcess | null = null;
 
@@ -135,28 +136,40 @@ export async function teardown() {
     if (webServerProcess) {
       console.log('🌐 Stopping web server...');
 
-      // Kill the process and wait for it to exit
+      // Kill the process and all Next.js processes
       const killPromise = new Promise<void>((resolve) => {
-        if (!webServerProcess) {
+        if (!webServerProcess || !webServerProcess.pid) {
           resolve();
           return;
         }
 
-        webServerProcess.on('exit', () => {
-          console.log('✅ Web server process exited');
-          resolve();
-        });
+        const pid = webServerProcess.pid;
+        console.log(`Terminating web server (PID ${pid})...`);
 
-        webServerProcess.kill('SIGTERM');
+        // First kill the spawned process
+        try {
+          webServerProcess.kill('SIGTERM');
+        } catch {}
 
-        // Force kill after 5 seconds if it doesn't exit gracefully
+        // Also kill any Next.js processes that might be running
+        try {
+          // Kill all Next.js dev server processes
+          execSync('pkill -f "next dev" || true', { stdio: 'ignore' });
+          execSync('pkill -f "next-server" || true', { stdio: 'ignore' });
+        } catch {}
+
+        // Wait a moment for processes to exit
         setTimeout(() => {
-          if (webServerProcess) {
-            console.log('⚠️  Force killing web server...');
-            webServerProcess.kill('SIGKILL');
-          }
+          // Force kill if still running
+          try {
+            if (webServerProcess) {
+              webServerProcess.kill('SIGKILL');
+            }
+          } catch {}
+
+          console.log('✅ Web server process terminated');
           resolve();
-        }, 5000);
+        }, 2000);
       });
 
       await killPromise;

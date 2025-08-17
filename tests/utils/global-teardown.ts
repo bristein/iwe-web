@@ -1,5 +1,7 @@
 import { cleanupGlobalTestServer, getGlobalTestServer } from './mongodb-test-server';
 import { closeConnection } from './db-cleanup';
+import { execSync } from 'child_process';
+import * as os from 'os';
 
 async function globalTeardown() {
   console.log('🧹 Starting global test cleanup...');
@@ -27,49 +29,33 @@ async function globalTeardown() {
     console.log('🛑 Stopping MongoDB test server...');
     await cleanupGlobalTestServer();
 
-    // Stop web server if it was started by tests
-    if (process.env.TEST_WEB_SERVER_PID) {
-      console.log('🛑 Stopping web server...');
+    // Stop web server if it was started by Playwright tests (not by Vitest)
+    // Only stop if we have a PID and Playwright started the server
+    if (process.env.TEST_WEB_SERVER_PID && process.env.PLAYWRIGHT_STARTED_SERVER === 'true') {
+      console.log('🛑 Stopping web server started by Playwright...');
       try {
         const pid = parseInt(process.env.TEST_WEB_SERVER_PID);
-        
-        // First try graceful shutdown
-        process.kill(pid, 'SIGTERM');
-        
-        // Wait for graceful shutdown with timeout
-        await new Promise<void>((resolve) => {
-          let attempts = 0;
-          const maxAttempts = 10; // 5 seconds total
-          
-          const checkInterval = setInterval(() => {
-            try {
-              // Check if process still exists (throws if it doesn't)
-              process.kill(pid, 0);
-              attempts++;
-              
-              if (attempts >= maxAttempts) {
-                // Force kill if still running after timeout
-                console.warn('Web server did not stop gracefully, forcing shutdown...');
-                try {
-                  process.kill(pid, 'SIGKILL');
-                } catch {
-                  // Process might have died between check and kill
-                }
-                clearInterval(checkInterval);
-                resolve();
-              }
-            } catch {
-              // Process no longer exists, success!
-              clearInterval(checkInterval);
-              resolve();
-            }
-          }, 500);
-        });
-        
+
+        // Kill the process
+        try {
+          process.kill(pid, 'SIGTERM');
+        } catch {}
+
+        // Also kill any Next.js processes
+        try {
+          execSync('pkill -f \"next dev\" || true', { stdio: 'ignore' });
+          execSync('pkill -f \"next-server\" || true', { stdio: 'ignore' });
+        } catch {}
+
+        // Wait a bit for processes to exit
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
         console.log('✅ Web server stopped successfully');
       } catch (error) {
         console.warn('Could not stop web server:', error);
       }
+    } else if (process.env.TEST_WEB_SERVER_PID) {
+      console.log('ℹ️  Web server was started by another test runner, leaving it running');
     }
 
     console.log('✅ Global cleanup completed successfully');
