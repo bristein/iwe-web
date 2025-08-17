@@ -54,33 +54,96 @@ IWE Web is an AI-powered platform designed for authors to write books, short sto
 
 ```
 iwe-web/
-├── app/                    # Next.js App Router directory
-│   ├── api/               # API routes
+├── middleware.ts          # ✅ Next.js middleware for auth (CORRECT LOCATION - root)
+├── app/                   # Next.js App Router directory
+│   ├── api/              # API routes
 │   │   ├── auth/         # Authentication endpoints (login, signup, logout, me)
+│   │   ├── health/       # Health check endpoint
 │   │   ├── projects/     # Project management endpoints
 │   │   └── users/        # User management endpoints
-│   ├── components/        # Reusable UI components
-│   │   ├── form/         # Form-specific components
-│   │   ├── layout/       # Layout components (cards, containers)
-│   │   └── ui/           # Base UI components
-│   ├── contexts/          # React contexts (AuthContext)
+│   ├── contexts/         # React contexts (AuthContext)
 │   ├── login/            # Login page
 │   ├── signup/           # Signup page
 │   └── portal/           # Protected dashboard for managing projects
+├── components/            # ✅ ALL reusable UI components (CONSOLIDATED)
+│   ├── form/             # Form-specific components
+│   ├── layout/           # Layout components (cards, containers)
+│   ├── ui/               # Base UI components
+│   └── index.ts          # Barrel exports for clean imports
 ├── lib/                   # Shared utilities and configurations
 │   ├── models/           # MongoDB models (User, Project)
 │   ├── validation/       # Zod schemas for data validation
 │   ├── auth.ts           # Authentication utilities
+│   ├── auth-config.ts    # Auth configuration and validation
 │   ├── mongodb.ts        # Database connection and helpers
-│   ├── rate-limit.ts    # API rate limiting
+│   ├── rate-limit.ts     # API rate limiting
 │   └── theme.ts          # Chakra UI theme configuration
-├── tests/                 # Playwright E2E tests
-│   └── utils/            # Test utilities and helpers
+├── tests/                 # Test suites
+│   ├── api/              # Vitest API tests (fast, no browser)
+│   ├── integration/      # Playwright E2E tests (browser-based)
+│   └── utils/            # Shared test utilities
 ├── scripts/              # Database setup scripts
 └── .claude/              # Claude AI agent configurations
     └── agents/           # Custom agent definitions
-
 ```
+
+## Code Organization Guidelines
+
+### Component Location Rules
+
+1. **ALL reusable components go in `/components`** at the root level
+   - `/components/ui/` - Base UI components (buttons, inputs, modals)
+   - `/components/form/` - Form-specific components
+   - `/components/layout/` - Layout components (cards, containers, grids)
+   - Use the barrel export pattern with `index.ts` for clean imports
+
+2. **DO NOT create components in `/app`**
+   - The `/app` directory is for routes, layouts, and pages only
+   - If you need a component, put it in `/components`
+
+3. **Middleware stays in the root**
+   - `middleware.ts` must remain in the project root (Next.js convention)
+   - This handles authentication and route protection
+
+### Import Conventions
+
+```typescript
+// ✅ CORRECT - Import from /components
+import { FormButton, FormField } from '@/components';
+import { ColorModeButton } from '@/components/ui/color-mode';
+
+// ❌ WRONG - Never import from /app/components
+import { FormButton } from '@/app/components'; // DON'T DO THIS
+```
+
+### File Organization Best Practices
+
+1. **Backend utilities go in `/lib`**
+   - Database models, connections, and utilities
+   - Authentication logic and helpers
+   - Validation schemas
+   - Rate limiting and other middleware utilities
+
+2. **API routes stay in `/app/api`**
+   - Follow Next.js App Router conventions
+   - Use `route.ts` files for API endpoints
+
+3. **Test organization**
+   - `/tests/api/` - Vitest tests for API endpoints (fast, no browser)
+   - `/tests/integration/` - Playwright tests for E2E flows (browser-based)
+   - Choose the right tool: Vitest for APIs, Playwright for UI
+
+4. **Context providers in `/app/contexts`**
+   - Keep close to where they're used in the app
+   - AuthContext and other app-wide contexts
+
+### When Adding New Code
+
+- **New component?** → Put it in `/components` with appropriate subfolder
+- **New API endpoint?** → Create in `/app/api/[endpoint]/route.ts`
+- **New utility function?** → Add to `/lib` in the appropriate file
+- **New test?** → API test in `/tests/api`, E2E test in `/tests/integration`
+- **New page?** → Create in `/app/[page]/page.tsx`
 
 ## Development Workflow
 

@@ -12,7 +12,7 @@ export class DatabaseReset {
    * Reset database to clean state
    */
   static async resetToCleanState() {
-    const server = this.testServer;
+    const server = DatabaseReset.testServer;
     if (!server.isRunning()) {
       await server.start();
     }
@@ -28,18 +28,18 @@ export class DatabaseReset {
    * Reset with basic seed data
    */
   static async resetWithSeedData() {
-    await this.resetToCleanState();
+    await DatabaseReset.resetToCleanState();
 
     // Seed basic data
     const seedData = await TestDataSeeder.seedBasicData();
-    await this.testServer.seedData(seedData);
+    await DatabaseReset.testServer.seedData(seedData);
   }
 
   /**
    * Reset specific collections only
    */
   static async resetCollections(collectionNames: string[]) {
-    const db = await this.testServer.getDatabase();
+    const db = await DatabaseReset.testServer.getDatabase();
 
     for (const collectionName of collectionNames) {
       const collection = db.collection(collectionName);
@@ -52,7 +52,7 @@ export class DatabaseReset {
    * Create a database snapshot for rollback
    */
   static async createSnapshot(): Promise<DatabaseSnapshot> {
-    const db = await this.testServer.getDatabase();
+    const db = await DatabaseReset.testServer.getDatabase();
     const collections = await db.collections();
     const snapshot: DatabaseSnapshot = {};
 
@@ -68,9 +68,9 @@ export class DatabaseReset {
    * Restore database from snapshot
    */
   static async restoreSnapshot(snapshot: DatabaseSnapshot) {
-    await this.testServer.clearDatabase();
+    await DatabaseReset.testServer.clearDatabase();
 
-    const db = await this.testServer.getDatabase();
+    const db = await DatabaseReset.testServer.getDatabase();
 
     for (const [collectionName, documents] of Object.entries(snapshot)) {
       if (documents.length > 0) {
@@ -91,14 +91,14 @@ export class DatabaseReset {
     let snapshot: DatabaseSnapshot | null = null;
 
     if (!options.preserveData) {
-      snapshot = await this.createSnapshot();
+      snapshot = await DatabaseReset.createSnapshot();
     }
 
     try {
       return await testFn();
     } finally {
       if (snapshot && !options.preserveData) {
-        await this.restoreSnapshot(snapshot);
+        await DatabaseReset.restoreSnapshot(snapshot);
       }
     }
   }
@@ -221,7 +221,7 @@ export class TestDatabaseHelpers {
     username?: RegExp;
     createdAfter?: Date;
   }) {
-    const { users } = await this.getDirectAccess();
+    const { users } = await TestDatabaseHelpers.getDirectAccess();
 
     const filter: Record<string, unknown> = {};
 

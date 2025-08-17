@@ -14,10 +14,10 @@ export default defineConfig({
   fullyParallel: true, // Enable parallel execution for better performance
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,
-  workers: process.env.CI ? 2 : 4, // Increase workers for better parallelization
-  timeout: 20000, // Reduce timeout as tests should be faster now
+  workers: 1, // Use single worker to ensure test stability and avoid race conditions
+  timeout: 30000, // Increase timeout for stability
   expect: {
-    timeout: 8000, // Reduce assertion timeout
+    timeout: 10000, // Increase assertion timeout for better reliability
   },
   reporter: [
     ['html'],

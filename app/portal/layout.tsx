@@ -4,7 +4,7 @@ import React from 'react';
 import { Box, Container, Flex, Heading, HStack, Text, Button, Skeleton } from '@chakra-ui/react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { ColorModeButton } from '@/components/ui/color-mode';
-import { FormButton } from '@/app/components';
+import { FormButton } from '@/components';
 import { useRouter } from 'next/navigation';
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {

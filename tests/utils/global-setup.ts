@@ -7,7 +7,7 @@ let webServerProcess: import('child_process').ChildProcess | null = null;
 async function waitForServer(url: string, timeout: number = 120000): Promise<void> {
   const startTime = Date.now();
   const healthUrl = `${url}/api/health`;
-  
+
   while (Date.now() - startTime < timeout) {
     try {
       // First check if server is responding
@@ -22,34 +22,39 @@ async function waitForServer(url: string, timeout: number = 120000): Promise<voi
         request.on('error', reject);
         request.setTimeout(1000);
       });
-      
+
       // Then check health endpoint for database connectivity
       await new Promise((resolve, reject) => {
-        http.get(healthUrl, (res) => {
-          let data = '';
-          res.on('data', (chunk) => { data += chunk; });
-          res.on('end', () => {
-            try {
-              const health = JSON.parse(data);
-              if (res.statusCode === 200 && health.database === 'connected') {
-                resolve(true);
-              } else {
-                reject(new Error(`Health check failed: ${data}`));
+        http
+          .get(healthUrl, (res) => {
+            let data = '';
+            res.on('data', (chunk) => {
+              data += chunk;
+            });
+            res.on('end', () => {
+              try {
+                const health = JSON.parse(data);
+                if (res.statusCode === 200 && health.database === 'connected') {
+                  resolve(true);
+                } else {
+                  reject(new Error(`Health check failed: ${data}`));
+                }
+              } catch {
+                reject(new Error(`Invalid health response: ${data}`));
               }
-            } catch {
-              reject(new Error(`Invalid health response: ${data}`));
-            }
-          });
-        }).on('error', reject).setTimeout(1000);
+            });
+          })
+          .on('error', reject)
+          .setTimeout(1000);
       });
-      
+
       return; // Server is ready with database connected
     } catch {
       // Server not ready yet, wait a bit
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
-  
+
   throw new Error(`Server at ${url} did not become healthy within ${timeout}ms`);
 }
 
@@ -87,22 +92,10 @@ async function globalSetup() {
     }
 
     // Start the Next.js dev server
-    // Check if server is already running (only reuse in non-CI environments)
-    const reuseExistingServer = !process.env.CI;
-    
-    if (reuseExistingServer) {
-      try {
-        await waitForServer('http://localhost:3000', 1000);
-        console.log('📡 Web server already running, reusing existing server');
-        return; // Exit early if server is already running
-      } catch {
-        // Server not running, will start it below
-      }
-    }
-    
-    // Start the server (always in CI, or when not running locally)
+    // Always start a fresh server for tests to ensure correct database connection
+    // Note: Reusing existing servers can cause database connection issues
     console.log('🌐 Starting Next.js web server...');
-    
+
     webServerProcess = spawn('pnpm', ['run', 'dev'], {
       env: {
         ...process.env,
@@ -127,14 +120,14 @@ async function globalSetup() {
     console.log('✅ Global setup completed successfully');
   } catch (error) {
     console.error('❌ Global setup failed:', error);
-    
+
     // Clean up if setup failed
     try {
       if (webServerProcess) {
         console.log('Cleaning up web server process...');
         webServerProcess.kill('SIGTERM');
       }
-      
+
       // Also clean up MongoDB test server if it was started
       const testServer = getGlobalTestServer();
       if (testServer && testServer.isRunning()) {
@@ -144,7 +137,7 @@ async function globalSetup() {
     } catch (cleanupError) {
       console.error('Error during cleanup:', cleanupError);
     }
-    
+
     throw error;
   }
 }

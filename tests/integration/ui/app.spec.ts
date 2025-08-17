@@ -11,10 +11,6 @@ test('homepage renders correctly', async ({ page }) => {
 
   const logo = page.locator('text=IW').first();
   await expect(logo).toBeVisible();
-
-  console.log('✅ Page loaded successfully');
-  console.log('✅ Main content is visible');
-  console.log('✅ Logo is present');
 });
 
 test('page has expected text content', async ({ page }) => {
@@ -26,8 +22,6 @@ test('page has expected text content', async ({ page }) => {
   // Be more specific about which "Get Started" button
   const ctaButton = page.locator('button:has-text("Get Started")').first();
   await expect(ctaButton).toBeVisible();
-
-  console.log('✅ Page contains expected text content');
 });
 
 test('page is responsive', async ({ page }) => {
@@ -46,7 +40,5 @@ test('page is responsive', async ({ page }) => {
     // Use a more flexible selector for content area
     const content = page.locator('[class*="container"], main, #__next').first();
     await expect(content).toBeVisible();
-
-    console.log(`✅ Page renders correctly at ${size.name} size (${size.width}x${size.height})`);
   }
 });

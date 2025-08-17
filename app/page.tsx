@@ -18,8 +18,8 @@ import {
   Separator,
   IconButton,
 } from '@chakra-ui/react';
-import { ColorModeButton } from '../components/ui/color-mode';
-import { FormButton } from './components';
+import { ColorModeButton } from '@/components/ui/color-mode';
+import { FormButton } from '@/components';
 import { FaGithub, FaTwitter, FaLinkedin } from 'react-icons/fa';
 import { MdSpeed, MdSettings, MdSecurity } from 'react-icons/md';
 

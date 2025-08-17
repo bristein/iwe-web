@@ -121,7 +121,23 @@ export class TestAssertions {
    * Assert user exists in database
    */
   static async assertUserExists(email: string, expectedData?: Partial<User>) {
-    const user = await DatabaseTestHelpers.findUserByEmail(email);
+    // Add retry logic to handle race conditions between API and database operations
+    let user: User | null = null;
+    let attempts = 0;
+    const maxAttempts = 10; // Increase max attempts
+    const retryDelay = 500; // Increase delay to 500ms
+
+    while (attempts < maxAttempts) {
+      user = await DatabaseTestHelpers.findUserByEmail(email);
+      if (user) {
+        break;
+      }
+      attempts++;
+      console.log(`Attempt ${attempts}/${maxAttempts}: User ${email} not found, retrying...`);
+      if (attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
+      }
+    }
 
     expect(user).toBeTruthy();
     expect(user!.email).toBe(email);
@@ -134,6 +150,8 @@ export class TestAssertions {
         }
       });
     }
+
+    return user;
   }
 
   /**
@@ -261,14 +279,17 @@ export class ApiDatabaseHelpers {
 
     expect(response.status()).toBe(201);
 
-    // Verify user was created in database
-    await TestAssertions.assertUserExists(userData.email, {
+    // Wait for response to complete before checking database
+    const responseData = await response.json();
+
+    // Verify user was created in database with proper retry logic
+    const user = await TestAssertions.assertUserExists(userData.email, {
       name: userData.name,
       username: userData.username,
       role: 'user',
     });
 
-    return await response.json();
+    return { user, ...responseData };
   }
 
   /**

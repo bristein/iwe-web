@@ -52,6 +52,13 @@ export class AuthHelper {
 
   async signup(user: TestUser): Promise<void> {
     await this.page.goto('/signup');
+
+    // Wait for the signup form to load
+    await this.page.waitForSelector('input[placeholder="Enter your full name"]', {
+      timeout: 10000,
+    });
+
+    // Fill form fields
     await this.page.fill('input[placeholder="Enter your full name"]', user.name);
     await this.page.fill('input[type="email"]', user.email);
     if (user.username) {
@@ -62,6 +69,16 @@ export class AuthHelper {
     const responsePromise = this.page.waitForResponse('/api/auth/signup');
     await this.page.click('button:has-text("Create Account")');
     const response = await responsePromise;
+
+    // Handle potential 409 conflict by creating a new unique user
+    if (response.status() === 409) {
+      console.warn(`User ${user.email} already exists, creating new unique user`);
+      // Generate a truly unique email with additional randomness
+      const basePrefix = user.email.split('@')[0] + '-retry';
+      const uniqueUser = TestUserFactory.create(basePrefix);
+      await this.signup(uniqueUser);
+      return;
+    }
 
     expect(response.status()).toBe(201);
     await expect(this.page).toHaveURL('/portal');

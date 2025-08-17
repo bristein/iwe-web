@@ -3,7 +3,7 @@
 import React from 'react';
 import { Box, Heading, Text, VStack, HStack, Grid } from '@chakra-ui/react';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { DashboardCard, FormButton } from '@/app/components';
+import { DashboardCard, FormButton } from '@/components';
 import { FaFileAlt, FaUsers, FaCog } from 'react-icons/fa';
 
 export default function PortalPage() {
