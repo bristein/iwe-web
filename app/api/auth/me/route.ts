@@ -3,7 +3,6 @@ import { getCurrentUser } from '@/lib/auth';
 import { getUsersCollection } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { sanitizeUser } from '@/lib/auth';
-import { User } from '@/lib/models/user';
 
 export async function GET() {
   try {
@@ -11,7 +10,14 @@ export async function GET() {
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      const response = NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      
+      // Add security headers even for authentication error responses
+      response.headers.set('X-Content-Type-Options', 'nosniff');
+      response.headers.set('X-Frame-Options', 'DENY');
+      response.headers.set('X-XSS-Protection', '1; mode=block');
+      
+      return response;
     }
 
     // Fetch full user data from database
@@ -21,18 +27,39 @@ export async function GET() {
     });
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      const response = NextResponse.json({ error: 'User not found' }, { status: 404 });
+      
+      // Add security headers even for error responses
+      response.headers.set('X-Content-Type-Options', 'nosniff');
+      response.headers.set('X-Frame-Options', 'DENY');
+      response.headers.set('X-XSS-Protection', '1; mode=block');
+      
+      return response;
     }
 
     // Return sanitized user data
-    return NextResponse.json({
+    const response = NextResponse.json({
       user: sanitizeUser(user),
     });
+    
+    // Add security headers
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+    
+    return response;
   } catch (error) {
     console.error('Get current user error:', error);
-    return NextResponse.json(
+    const response = NextResponse.json(
       { error: 'An error occurred while fetching user data' },
       { status: 500 }
     );
+    
+    // Add security headers even for error responses
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+    
+    return response;
   }
 }

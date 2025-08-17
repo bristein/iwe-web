@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { VStack, Text, Link, Alert } from '@chakra-ui/react';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { FormField, FormButton, PageContainer, FormCard } from '@/app/components';
+import { FormField, FormButton, PageContainer, FormCard } from '@/components';
 
 function LoginContent() {
   const [email, setEmail] = useState('');
@@ -122,7 +122,7 @@ function LoginContent() {
         subtitle="Sign in to your IWE Web account"
         footer={footerContent}
       >
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <VStack gap="6">
             {error && (
               <Alert.Root status="error" width="100%" borderRadius="lg">

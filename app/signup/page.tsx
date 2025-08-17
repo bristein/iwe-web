@@ -10,7 +10,7 @@ import {
   PageContainer,
   FormCard,
   PasswordStrengthIndicator,
-} from '@/app/components';
+} from '@/components';
 
 function SignupContent() {
   const [email, setEmail] = useState('');
@@ -186,7 +186,7 @@ function SignupContent() {
         subtitle="Join IWE Web and start your writing journey"
         footer={footerContent}
       >
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <VStack gap="6">
             {error && (
               <Alert.Root status="error" width="100%" borderRadius="lg">

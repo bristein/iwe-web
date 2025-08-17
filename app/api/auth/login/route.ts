@@ -5,6 +5,7 @@ import { User } from '@/lib/models/user';
 import { z } from 'zod';
 import { authRateLimit } from '@/lib/rate-limit';
 import { authLogger } from '@/lib/logger';
+import { parseJsonWithSizeLimit, PayloadTooLargeError } from '@/lib/payload-limit';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -19,7 +20,17 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    // Parse JSON with size limit check
+    let body;
+    try {
+      body = await parseJsonWithSizeLimit(request);
+    } catch (error) {
+      if (error instanceof PayloadTooLargeError) {
+        return error.response;
+      }
+      // Handle JSON parsing errors
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    }
 
     // Validate input
     const validationResult = loginSchema.safeParse(body);
@@ -34,8 +45,10 @@ export async function POST(request: NextRequest) {
 
     const usersCollection = await getUsersCollection();
 
-    // Find user by email
-    const user = await usersCollection.findOne({ email });
+    // Find user by email (case-insensitive)
+    const user = await usersCollection.findOne({ 
+      email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+    });
     if (!user) {
       authLogger.info('Login attempt failed - user not found', { email });
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
