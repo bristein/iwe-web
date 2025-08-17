@@ -134,7 +134,32 @@ export async function teardown() {
     // Clean up web server if we started it
     if (webServerProcess) {
       console.log('🌐 Stopping web server...');
-      webServerProcess.kill('SIGTERM');
+
+      // Kill the process and wait for it to exit
+      const killPromise = new Promise<void>((resolve) => {
+        if (!webServerProcess) {
+          resolve();
+          return;
+        }
+
+        webServerProcess.on('exit', () => {
+          console.log('✅ Web server process exited');
+          resolve();
+        });
+
+        webServerProcess.kill('SIGTERM');
+
+        // Force kill after 5 seconds if it doesn't exit gracefully
+        setTimeout(() => {
+          if (webServerProcess) {
+            console.log('⚠️  Force killing web server...');
+            webServerProcess.kill('SIGKILL');
+          }
+          resolve();
+        }, 5000);
+      });
+
+      await killPromise;
       webServerProcess = null;
     }
 
@@ -146,8 +171,17 @@ export async function teardown() {
     }
 
     console.log('✅ Vitest API test global teardown completed successfully');
+
+    // Force exit after a short delay to ensure all resources are cleaned up
+    // This is needed because Next.js dev server might keep Node.js process alive
+    setTimeout(() => {
+      process.exit(0);
+    }, 1000);
   } catch (error) {
     console.error('❌ Vitest API test global teardown failed:', error);
-    // Don't throw here - we want other cleanup to proceed
+    // Force exit on error too
+    setTimeout(() => {
+      process.exit(1);
+    }, 1000);
   }
 }
