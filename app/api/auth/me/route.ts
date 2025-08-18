@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { getUsersCollection } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { sanitizeUser } from '@/lib/auth';
+import { authLogger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -49,7 +50,7 @@ export async function GET() {
 
     return response;
   } catch (error) {
-    console.error('Get current user error:', error);
+    authLogger.error('Get current user error', error);
     const response = NextResponse.json(
       { error: 'An error occurred while fetching user data' },
       { status: 500 }

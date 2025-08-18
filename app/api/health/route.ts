@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb';
+import { apiLogger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -21,7 +22,13 @@ export async function GET() {
 
     return response;
   } catch (error) {
-    console.error('Health check failed:', error);
+    // Use structured logging with rate limiting consideration
+    // Only log errors at intervals to prevent log flooding
+    const errorKey = error instanceof Error ? error.message : 'Unknown error';
+    apiLogger.error('Health check failed', error, {
+      database: 'disconnected',
+      errorKey,
+    });
 
     const response = NextResponse.json(
       {
