@@ -1,6 +1,19 @@
 {
   "permissions": {
-    "allow": ["Bash(gh run list:*)"],
+    "allow": [
+      "Bash(gh run list:*)",
+      "mcp__ide__executeCode",
+      "mcp__playwright__browser_type",
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(git checkout:*)",
+      "Bash(timeout 30s pnpm dev)",
+      "Bash(gtimeout:*)",
+      "Bash(pkill:*)",
+      "Bash(claude mcp add:*)",
+      "Bash(time pnpm test:*)",
+      "Bash(time pnpm:*)",
+      "Bash(time pnpm exec vitest run --reporter=verbose)"
+    ],
     "deny": [],
     "ask": []
   }

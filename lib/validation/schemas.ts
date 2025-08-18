@@ -45,7 +45,7 @@ export const updateUserSchema = z.object({
 export const createProjectSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
   description: z.string().max(1000, 'Description too long').optional(),
-  userId: objectIdSchema,
+  // userId is omitted here - it will be derived from JWT token for security
   genre: z.string().max(100).optional(),
   wordCountGoal: z.number().positive().optional(),
   status: z

@@ -10,22 +10,22 @@ export default defineConfig({
   test: {
     // Test directory for API tests
     include: ['tests/api/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    
+
     // Test environment setup
     environment: 'node',
-    
+
     // Global setup and teardown
     globalSetup: ['tests/api/setup/global-setup.ts'],
-    
+
     // Setup files run before each test file
     setupFiles: ['tests/api/setup/test-setup.ts'],
-    
+
     // Test timeout
-    testTimeout: 30000,
-    
+    testTimeout: 20000, // Reduced from 30s - API tests should be fast
+
     // Hook timeout for setup/teardown
-    hookTimeout: 60000,
-    
+    hookTimeout: 30000, // Reduced from 60s - startup should be faster
+
     // Don't run tests in parallel by default for database isolation
     // Individual test files can override this with `describe.concurrent`
     pool: 'forks',
@@ -34,7 +34,7 @@ export default defineConfig({
         singleFork: true, // Use single fork for database isolation
       },
     },
-    
+
     // Coverage configuration
     coverage: {
       provider: 'v8',
@@ -59,16 +59,16 @@ export default defineConfig({
         'postcss.config.mjs',
       ],
     },
-    
+
     // Reporter configuration
     reporters: process.env.CI ? ['github-actions', 'json'] : ['verbose'],
     outputFile: {
       json: './test-results/vitest-results.json',
     },
-    
+
     // Retry configuration
     retry: process.env.CI ? 2 : 1,
-    
+
     // Environment variables available in tests
     env: {
       NODE_ENV: 'test',
@@ -77,7 +77,7 @@ export default defineConfig({
       BASE_URL: 'http://localhost:3000',
     },
   },
-  
+
   resolve: {
     alias: {
       '@': resolve(__dirname, './'),

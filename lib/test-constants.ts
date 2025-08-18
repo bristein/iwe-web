@@ -163,8 +163,11 @@ export const TEST_PASSWORDS = {
 // Helper function to generate unique test emails
 export function generateTestEmail(prefix: string = TEST_USER.EMAIL_PREFIX): string {
   const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 1000);
-  return `${prefix}-${timestamp}-${random}@example.com`;
+  const random = Math.floor(Math.random() * 10000);
+  const processId = process.pid || Math.floor(Math.random() * 1000);
+  // Add microseconds for even better uniqueness
+  const microtime = performance.now().toString().replace('.', '');
+  return `${prefix}-${timestamp}-${processId}-${random}-${microtime}@example.com`;
 }
 
 // Helper function to check if running in test mode

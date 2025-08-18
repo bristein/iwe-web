@@ -12,6 +12,8 @@ export interface CleanupOptions {
   emails?: string[];
   usernames?: string[];
   deleteAll?: boolean;
+  workerId?: string;
+  executionId?: string;
 }
 
 /**
@@ -52,7 +54,12 @@ export async function cleanupTestUsers(options: CleanupOptions = {}) {
   let filter: Record<string, unknown> = {};
 
   if (options.deleteAll) {
-    // Delete all test users - use more specific patterns to avoid accidents
+    // WARNING: This should only be used in emergency situations or in global teardown
+    // For parallel test safety, prefer specific email cleanup
+    console.warn(
+      '⚠️  Using deleteAll - this should only be used in global teardown or emergency cleanup'
+    );
+
     filter = {
       $or: [
         // Test users created by our test suite
@@ -60,7 +67,7 @@ export async function cleanupTestUsers(options: CleanupOptions = {}) {
         { email: { $regex: /^testuser\d+@example\.com$/i } },
         { email: { $regex: /^playwright-test-.*@example\.com$/i } },
         // Worker-scoped test users for parallel execution
-        { email: { $regex: /^test.*-w\d+-\d{13}-\d{1,3}@example\.com$/i } },
+        { email: { $regex: /^[^@]+-w\d+-[^@]+@example\.com$/i } },
         // Users with test metadata (if we add this field)
         { isTestUser: true },
         { createdBy: 'test-automation' },
@@ -69,6 +76,11 @@ export async function cleanupTestUsers(options: CleanupOptions = {}) {
         // Test pattern with timestamp
         { email: { $regex: /^test-\d{13}@/i } },
       ],
+    };
+  } else if (options.workerId && options.executionId) {
+    // Worker and execution specific cleanup
+    filter = {
+      email: { $regex: new RegExp(`-w${options.workerId}-${options.executionId}-`, 'i') },
     };
   } else {
     // Build filter based on provided options
@@ -89,8 +101,6 @@ export async function cleanupTestUsers(options: CleanupOptions = {}) {
 
   try {
     const result = await usersCollection.deleteMany(filter);
-    console.log(`✅ Deleted ${result.deletedCount} test user(s)`);
-
     return result.deletedCount;
   } catch (error) {
     console.error('❌ Cleanup error:', error);

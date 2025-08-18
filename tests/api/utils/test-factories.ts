@@ -39,11 +39,16 @@ export class TestUserFactory {
    * Create a single test user with automatic cleanup registration
    */
   static create(prefix: string = 'api-test', options: Partial<TestUser> = {}): TestUser {
+    // Add extra randomness to ensure uniqueness even in rapid test execution
+    const extraRandom = Math.floor(Math.random() * 100000);
+    const timestamp = Date.now();
+    const uniquePrefix = `${prefix}-${timestamp}-${extraRandom}`;
+
     const user: TestUser = {
-      name: options.name || `API Test User ${prefix}`,
-      email: options.email || generateTestEmail(prefix),
+      name: options.name || `API Test User ${uniquePrefix}`,
+      email: options.email || generateTestEmail(uniquePrefix),
       password: options.password || TEST_PASSWORDS.VALID,
-      username: 'username' in options ? options.username : `${prefix}user`,
+      username: 'username' in options ? options.username : `${uniquePrefix}user`,
     };
 
     // Register for automatic cleanup

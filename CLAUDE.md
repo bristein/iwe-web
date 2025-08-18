@@ -6,6 +6,8 @@ IWE Web is an AI-powered platform designed for authors to write books, short sto
 
 ## Technologies
 
+`pnpm` for package mangement and script execution
+
 ### Frontend
 
 - **Next.js 15.4** - React framework with App Router for server-side rendering and optimized performance
