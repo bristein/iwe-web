@@ -95,18 +95,15 @@ export async function POST(request: NextRequest) {
     const validatedData = validation.data;
     const projectsCollection = await getProjectsCollection();
 
-    // Security: Ensure userId matches the authenticated user
-    if (validatedData.userId && validatedData.userId !== tokenPayload.userId) {
-      return NextResponse.json(
-        { error: 'Cannot create projects for other users' },
-        { status: 403 }
-      );
-    }
+    // Security: userId is always derived from the authenticated user's JWT token
+    // The schema no longer accepts userId from the client for security
 
     const newProject: Project = {
       title: validatedData.title,
       description: validatedData.description,
       userId: new ObjectId(tokenPayload.userId), // Always use authenticated user's ID
+      genre: validatedData.genre,
+      wordCountGoal: validatedData.wordCountGoal,
       status: validatedData.status || 'draft',
       tags: validatedData.tags || [],
       settings: validatedData.settings || {

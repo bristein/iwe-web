@@ -16,16 +16,16 @@ export class ApiAuthHelper {
    */
   async signup(user: TestUser): Promise<string> {
     const payload = TestDataFactory.createSignupPayload(user);
-    
+
     const response = await jsonRequest(this.client, 'post', API_ROUTES.SIGNUP, payload);
-    
+
     ApiAssertions.assertUserCreated(response, user);
-    
+
     const authToken = extractAuthToken(response);
     if (!authToken) {
       throw new Error('No auth token returned from signup');
     }
-    
+
     return authToken;
   }
 
@@ -34,16 +34,16 @@ export class ApiAuthHelper {
    */
   async login(user: TestUser): Promise<string> {
     const payload = TestDataFactory.createLoginPayload(user);
-    
+
     const response = await jsonRequest(this.client, 'post', API_ROUTES.LOGIN, payload);
-    
+
     ApiAssertions.assertLoginSuccess(response, user);
-    
+
     const authToken = extractAuthToken(response);
     if (!authToken) {
       throw new Error('No auth token returned from login');
     }
-    
+
     return authToken;
   }
 
@@ -53,7 +53,7 @@ export class ApiAuthHelper {
   async signupAndLogin(user: TestUser): Promise<string> {
     // First signup
     await this.signup(user);
-    
+
     // Then login to get a fresh token
     return this.login(user);
   }
@@ -62,14 +62,12 @@ export class ApiAuthHelper {
    * Verify user profile endpoint with auth token
    */
   async verifyProfile(authToken: string, expectedUser: TestUser): Promise<void> {
-    const response = await this.client
-      .get(API_ROUTES.ME)
-      .set(createAuthHeaders(authToken));
-    
+    const response = await this.client.get(API_ROUTES.ME).set(createAuthHeaders(authToken));
+
     expect(response.status).toBe(200);
     expect(response.body.user.email).toBe(expectedUser.email);
     expect(response.body.user.name).toBe(expectedUser.name);
-    
+
     if (expectedUser.username) {
       expect(response.body.user.username).toBe(expectedUser.username);
     }
@@ -79,10 +77,8 @@ export class ApiAuthHelper {
    * Logout user with auth token
    */
   async logout(authToken: string): Promise<void> {
-    const response = await this.client
-      .post(API_ROUTES.LOGOUT)
-      .set(createAuthHeaders(authToken));
-    
+    const response = await this.client.post(API_ROUTES.LOGOUT).set(createAuthHeaders(authToken));
+
     expect(response.status).toBe(200);
   }
 
@@ -97,10 +93,12 @@ export class ApiAuthHelper {
   /**
    * Verify that an invalid auth token is rejected
    */
-  async verifyInvalidTokenRejected(method: 'get' | 'post' | 'put' | 'delete', url: string): Promise<void> {
-    const response = await this.client[method](url)
-      .set(createAuthHeaders('invalid-token'));
-    
+  async verifyInvalidTokenRejected(
+    method: 'get' | 'post' | 'put' | 'delete',
+    url: string
+  ): Promise<void> {
+    const response = await this.client[method](url).set(createAuthHeaders('invalid-token'));
+
     ApiAssertions.assertUnauthorized(response);
   }
 
@@ -110,19 +108,19 @@ export class ApiAuthHelper {
   async testCompleteAuthFlow(user: TestUser): Promise<void> {
     // 1. Signup
     const signupToken = await this.signup(user);
-    
+
     // 2. Verify profile after signup
     await this.verifyProfile(signupToken, user);
-    
+
     // 3. Logout
     await this.logout(signupToken);
-    
+
     // 4. Verify logout worked (profile should be unauthorized)
     await this.verifyRequiresAuth('get', API_ROUTES.ME);
-    
+
     // 5. Login
     const loginToken = await this.login(user);
-    
+
     // 6. Verify profile after login
     await this.verifyProfile(loginToken, user);
   }
@@ -136,9 +134,37 @@ export async function createAuthenticatedHelper(
   user: TestUser
 ): Promise<{ helper: ApiAuthHelper; authToken: string }> {
   const helper = new ApiAuthHelper(client);
-  const authToken = await helper.signup(user);
-  
-  return { helper, authToken };
+
+  // Add retry logic for signup in case of conflicts
+  let authToken: string;
+  let attempts = 0;
+  const maxAttempts = 3;
+
+  while (attempts < maxAttempts) {
+    try {
+      authToken = await helper.signup(user);
+      break;
+    } catch (error) {
+      attempts++;
+      if (attempts >= maxAttempts) {
+        throw error;
+      }
+
+      // If we get a 409 conflict, create a new unique user and try again
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 10000);
+      const originalEmail = user.email;
+      const baseName = originalEmail.split('@')[0];
+
+      user.email = `${baseName}-retry${attempts}-${timestamp}-${random}@example.com`;
+      user.name = `${user.name} (Retry ${attempts})`;
+      if (user.username) {
+        user.username = `${user.username}retry${attempts}${random}`;
+      }
+    }
+  }
+
+  return { helper, authToken: authToken! };
 }
 
 /**
@@ -148,26 +174,21 @@ export class JwtTestHelper {
   /**
    * Verify that JWT tokens are stateless (remain valid after logout)
    */
-  static async verifyStatelessBehavior(
-    client: SuperTest<Test>,
-    user: TestUser
-  ): Promise<void> {
+  static async verifyStatelessBehavior(client: SuperTest<Test>, user: TestUser): Promise<void> {
     const helper = new ApiAuthHelper(client);
-    
+
     // Get auth token
     const authToken = await helper.signup(user);
-    
+
     // Verify token works
     await helper.verifyProfile(authToken, user);
-    
+
     // Logout (clears server-side cookie)
     await helper.logout(authToken);
-    
+
     // Manually use the old token - should still work because JWTs are stateless
-    const response = await client
-      .get(API_ROUTES.ME)
-      .set(createAuthHeaders(authToken));
-    
+    const response = await client.get(API_ROUTES.ME).set(createAuthHeaders(authToken));
+
     expect(response.status).toBe(200);
     expect(response.body.user.email).toBe(user.email);
   }
@@ -183,12 +204,10 @@ export class JwtTestHelper {
       '',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.corrupted-payload.signature',
     ];
-    
+
     for (const token of corruptedTokens) {
-      const response = await client
-        .get(API_ROUTES.ME)
-        .set(createAuthHeaders(token));
-      
+      const response = await client.get(API_ROUTES.ME).set(createAuthHeaders(token));
+
       expect(response.status).toBe(401);
     }
   }

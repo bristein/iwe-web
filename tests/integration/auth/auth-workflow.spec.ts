@@ -9,30 +9,32 @@ import {
 import { BUTTON_TEXT, ERROR_MESSAGES, TEST_IDS, NAV_LINKS } from '../../../lib/test-constants';
 
 test.describe('Authentication - E2E Workflows', () => {
-  let testUsers: TestUser[] = [];
+  // Track resources per test for proper cleanup without interfering with parallel tests
+  let currentTestUsers: TestUser[] = [];
 
   test.beforeEach(async () => {
-    // Clean up any users created in previous tests
-    if (testUsers.length > 0) {
-      await DatabaseHelper.cleanup(testUsers.map((u) => u.email));
-      testUsers = [];
-    }
-    // Also clean up any leftover test users from previous runs
-    await DatabaseHelper.cleanupAll();
+    // Reset the current test user tracking
+    currentTestUsers = [];
   });
 
   test.afterEach(async () => {
-    // Clean up users created in this test
-    if (testUsers.length > 0) {
-      await DatabaseHelper.cleanup(testUsers.map((u) => u.email));
-      testUsers = [];
+    // Clean up only users created by this specific test
+    if (currentTestUsers.length > 0) {
+      const emails = currentTestUsers.map((u) => u.email);
+      try {
+        await DatabaseHelper.cleanup(emails);
+        console.log(`Cleaned up ${emails.length} users for current test:`, emails);
+      } catch (error) {
+        console.warn('Cleanup warning (non-blocking):', error);
+      }
+      currentTestUsers = [];
     }
   });
 
   test.describe('Complete User Journey', () => {
     test('should complete full authentication lifecycle', async ({ page }) => {
       const user = TestUserFactory.create('e2e-complete');
-      testUsers.push(user);
+      currentTestUsers.push(user);
 
       // 1. SIGNUP - Browser interaction test (not API)
       await page.goto('/signup');
@@ -117,7 +119,7 @@ test.describe('Authentication - E2E Workflows', () => {
 
     test('should handle user workflow with protected route access', async ({ page }) => {
       const user = TestUserFactory.create('e2e-protected');
-      testUsers.push(user);
+      currentTestUsers.push(user);
 
       // Try to access protected route while unauthenticated
       await page.goto('/portal');
@@ -146,7 +148,7 @@ test.describe('Authentication - E2E Workflows', () => {
 
     test('should maintain session across browser navigation', async ({ page }) => {
       const user = TestUserFactory.create('e2e-navigation');
-      testUsers.push(user);
+      currentTestUsers.push(user);
 
       const authHelper = new AuthHelper(page);
       await authHelper.signup(user);
@@ -170,7 +172,7 @@ test.describe('Authentication - E2E Workflows', () => {
 
   test.describe('Form Validation and UI Behavior', () => {
     test('should show validation errors for signup form', async ({ page }) => {
-      const formHelper = new FormHelper(page);
+      // const formHelper = new FormHelper(page);
 
       await page.goto('/signup');
 
@@ -245,7 +247,7 @@ test.describe('Authentication - E2E Workflows', () => {
 
     test('should handle duplicate email registration', async ({ page }) => {
       const user = TestUserFactory.create('duplicate-test');
-      testUsers.push(user);
+      currentTestUsers.push(user);
 
       const authHelper = new AuthHelper(page);
       const formHelper = new FormHelper(page);
@@ -271,7 +273,7 @@ test.describe('Authentication - E2E Workflows', () => {
     test('should handle multiple user accounts properly', async ({ page }) => {
       const user1 = TestUserFactory.create('e2e-multi-1');
       const user2 = TestUserFactory.create('e2e-multi-2');
-      testUsers.push(user1, user2);
+      currentTestUsers.push(user1, user2);
 
       const authHelper = new AuthHelper(page);
 
@@ -300,7 +302,7 @@ test.describe('Authentication - E2E Workflows', () => {
     test('should prevent session mixing between users', async ({ browser }) => {
       const user1 = TestUserFactory.create('e2e-session-1');
       const user2 = TestUserFactory.create('e2e-session-2');
-      testUsers.push(user1, user2);
+      currentTestUsers.push(user1, user2);
 
       // Create separate browser contexts for true session isolation
       const context1 = await browser.newContext();
@@ -336,7 +338,7 @@ test.describe('Authentication - E2E Workflows', () => {
 
     test('should handle session expiration gracefully', async ({ page }) => {
       const user = TestUserFactory.create('e2e-expiry');
-      testUsers.push(user);
+      currentTestUsers.push(user);
 
       const authHelper = new AuthHelper(page);
 
@@ -359,7 +361,7 @@ test.describe('Authentication - E2E Workflows', () => {
 
     test('should handle corrupted session data', async ({ page }) => {
       const user = TestUserFactory.create('e2e-corrupt');
-      testUsers.push(user);
+      currentTestUsers.push(user);
 
       const authHelper = new AuthHelper(page);
       await authHelper.signup(user);
@@ -389,7 +391,7 @@ test.describe('Authentication - E2E Workflows', () => {
       page,
     }) => {
       const user = TestUserFactory.create('force-auth');
-      testUsers.push(user);
+      currentTestUsers.push(user);
 
       const authHelper = new AuthHelper(page);
       await authHelper.signup(user);
@@ -439,7 +441,7 @@ test.describe('Authentication - E2E Workflows', () => {
 
     test('should maintain force parameter through navigation', async ({ page }) => {
       const user = TestUserFactory.create('force-maintain');
-      testUsers.push(user);
+      currentTestUsers.push(user);
 
       const authHelper = new AuthHelper(page);
       await authHelper.signup(user);
@@ -526,7 +528,7 @@ test.describe('Authentication - E2E Workflows', () => {
 
     test('should work across different viewport sizes', async ({ page }) => {
       const user = TestUserFactory.create('e2e-viewport');
-      testUsers.push(user);
+      currentTestUsers.push(user);
 
       const viewports = [
         { width: 375, height: 667, name: 'Mobile' },
@@ -567,7 +569,7 @@ test.describe('Authentication - E2E Workflows', () => {
 
     test('should handle keyboard-only navigation', async ({ page }) => {
       const user = TestUserFactory.create('e2e-keyboard');
-      testUsers.push(user);
+      currentTestUsers.push(user);
 
       // Test keyboard navigation on signup
       await page.goto('/signup');
@@ -596,7 +598,7 @@ test.describe('Authentication - E2E Workflows', () => {
   test.describe('Performance', () => {
     test('should complete authentication flow within performance budget', async ({ page }) => {
       const user = TestUserFactory.create('e2e-performance');
-      testUsers.push(user);
+      currentTestUsers.push(user);
 
       // Measure complete signup flow
       const signupStart = Date.now();
