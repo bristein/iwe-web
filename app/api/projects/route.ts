@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get('id');
-    const userId = searchParams.get('userId');
     const status = searchParams.get('status');
+    // userId is derived from JWT token for security - not from client params
 
     const projectsCollection = await getProjectsCollection();
 
@@ -40,29 +40,21 @@ export async function GET(request: NextRequest) {
       if (!project) {
         return NextResponse.json({ error: 'Project not found' }, { status: 404 });
       }
+
+      // Verify user owns this project (unless admin)
+      if (project.userId.toString() !== tokenPayload.userId && tokenPayload.role !== 'admin') {
+        return NextResponse.json({ error: 'Unauthorized access to project' }, { status: 403 });
+      }
+
       return NextResponse.json(project);
     }
 
     // Build filter query
     const filter: Record<string, unknown> = {};
 
-    if (userId) {
-      // Validate ObjectId format for userId
-      if (!validateObjectId(userId)) {
-        return NextResponse.json({ error: 'Invalid user ID format' }, { status: 400 });
-      }
-
-      // Security: Ensure users can only access their own projects
-      // unless they have admin privileges
-      if (tokenPayload.userId !== userId && tokenPayload.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized access to projects' }, { status: 403 });
-      }
-
-      filter.userId = new ObjectId(userId);
-    } else {
-      // If no userId specified, default to the authenticated user's projects
-      filter.userId = new ObjectId(tokenPayload.userId);
-    }
+    // Always use the authenticated user's ID from JWT token
+    // This prevents users from accessing other users' projects
+    filter.userId = new ObjectId(tokenPayload.userId);
 
     if (status) {
       filter.status = status;

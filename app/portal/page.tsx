@@ -111,56 +111,41 @@ export default function PortalPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchProjects = useCallback(
-    async (signal?: AbortSignal) => {
-      // Validate user ID before API call
-      if (!user?._id) {
-        setError('User session is invalid. Please log in again.');
-        setLoading(false);
-        return;
+  const fetchProjects = useCallback(async (signal?: AbortSignal) => {
+    // The API will derive the user from the JWT token
+    // No need to pass or validate user ID client-side
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch('/api/projects', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch projects: ${response.statusText}`);
       }
 
-      // Additional validation for user ID format
-      if (typeof user._id !== 'string' || user._id.length < 1) {
-        console.error('Invalid user ID format');
-        setError('Invalid user session. Please log in again.');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch(`/api/projects?userId=${user._id}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch projects: ${response.statusText}`);
+      const data = await response.json();
+      setProjects(data);
+    } catch (err) {
+      if (err instanceof Error) {
+        if (err.name !== 'AbortError') {
+          console.error('Error fetching projects:', err);
+          setError(err.message || 'Failed to load projects. Please try again.');
         }
-
-        const data = await response.json();
-        setProjects(data);
-      } catch (err) {
-        if (err instanceof Error) {
-          if (err.name !== 'AbortError') {
-            console.error('Error fetching projects:', err);
-            setError(err.message || 'Failed to load projects. Please try again.');
-          }
-        } else {
-          setError('An unexpected error occurred. Please try again.');
-        }
-      } finally {
-        setLoading(false);
+      } else {
+        setError('An unexpected error occurred. Please try again.');
       }
-    },
-    [user]
-  );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();

@@ -868,31 +868,38 @@ test.describe('Portal Page - Project Management', () => {
       await expect(page).toHaveURL('/login?from=%2Fportal');
     });
 
-    test('should validate user ID format before API calls', async ({ page }) => {
-      const user = TestUserFactory.create('portal-invalid-id');
+    test('should not pass userId parameter to API for security', async ({ page }) => {
+      const user = TestUserFactory.create('portal-no-userid-param');
       testUsers.push(user);
 
       await authHelper.signup(user);
 
-      // Mock API to return error for invalid user ID format
-      await page.route('/api/projects*', async (route) => {
-        const url = new URL(route.request().url());
-        const userId = url.searchParams.get('userId');
+      // Intercept API call to verify no userId parameter is sent
+      let apiCallMade = false;
+      let hasUserIdParam = false;
 
-        if (userId && userId.length < 10) {
-          await route.fulfill({
-            status: 400,
-            contentType: 'application/json',
-            body: JSON.stringify({ error: 'Invalid user ID format' }),
-          });
-        } else {
-          await route.continue();
-        }
+      await page.route('/api/projects*', async (route) => {
+        apiCallMade = true;
+        const url = new URL(route.request().url());
+        hasUserIdParam = url.searchParams.has('userId');
+
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([]),
+        });
       });
 
       await page.goto('/portal');
 
-      // The page should still render and handle validation gracefully
+      // Wait for API call to complete
+      await page.waitForLoadState('networkidle');
+
+      // Verify API was called without userId parameter for security
+      expect(apiCallMade).toBe(true);
+      expect(hasUserIdParam).toBe(false);
+
+      // The page should still render normally
       await expect(page.getByTestId(TEST_IDS.WELCOME_HEADING)).toBeVisible();
     });
 
