@@ -4,7 +4,7 @@ import supertest from 'supertest';
  * API client for testing Next.js API routes with Vitest
  * This creates a test instance of the Next.js app without starting a full server
  */
- 
+
 export class ApiClient {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private static instance: any = null;

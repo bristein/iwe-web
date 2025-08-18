@@ -29,16 +29,27 @@ export async function POST(request: NextRequest) {
         return error.response;
       }
       // Handle JSON parsing errors
-      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+      const response = NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+      response.headers.set('X-Content-Type-Options', 'nosniff');
+      response.headers.set('X-Frame-Options', 'DENY');
+      response.headers.set('X-XSS-Protection', '1; mode=block');
+      return response;
     }
 
     // Validate input
     const validationResult = loginSchema.safeParse(body);
     if (!validationResult.success) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         { error: 'Validation failed', details: validationResult.error.errors },
         { status: 400 }
       );
+      response.headers.set('X-Content-Type-Options', 'nosniff');
+      response.headers.set('X-Frame-Options', 'DENY');
+      response.headers.set('X-XSS-Protection', '1; mode=block');
+      return response;
     }
 
     const { email, password } = validationResult.data;
@@ -46,30 +57,42 @@ export async function POST(request: NextRequest) {
     const usersCollection = await getUsersCollection();
 
     // Find user by email (case-insensitive)
-    const user = await usersCollection.findOne({ 
-      email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+    const user = await usersCollection.findOne({
+      email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
     });
     if (!user) {
       authLogger.info('Login attempt failed - user not found', { email });
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      const response = NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      response.headers.set('X-Content-Type-Options', 'nosniff');
+      response.headers.set('X-Frame-Options', 'DENY');
+      response.headers.set('X-XSS-Protection', '1; mode=block');
+      return response;
     }
 
     // Check if user has a password (for backwards compatibility)
     if (!user.password) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         {
           error:
             'This account was created before password authentication was enabled. Please contact support.',
         },
         { status: 401 }
       );
+      response.headers.set('X-Content-Type-Options', 'nosniff');
+      response.headers.set('X-Frame-Options', 'DENY');
+      response.headers.set('X-XSS-Protection', '1; mode=block');
+      return response;
     }
 
     // Verify password
     const isPasswordValid = await verifyPassword(password, user.password);
     if (!isPasswordValid) {
       authLogger.info('Login attempt failed - invalid password', { email });
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      const response = NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      response.headers.set('X-Content-Type-Options', 'nosniff');
+      response.headers.set('X-Frame-Options', 'DENY');
+      response.headers.set('X-XSS-Protection', '1; mode=block');
+      return response;
     }
 
     // Update last active timestamp
@@ -91,12 +114,23 @@ export async function POST(request: NextRequest) {
 
     // Return sanitized user data
     authLogger.info('User logged in successfully', { userId: user._id?.toString(), email });
-    return NextResponse.json({
+    const response = NextResponse.json({
       message: 'Login successful',
       user: sanitizeUser(user),
     });
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+    return response;
   } catch (error) {
     authLogger.error('Login error', error, { endpoint: '/api/auth/login' });
-    return NextResponse.json({ error: 'An error occurred during login' }, { status: 500 });
+    const response = NextResponse.json(
+      { error: 'An error occurred during login' },
+      { status: 500 }
+    );
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+    return response;
   }
 }

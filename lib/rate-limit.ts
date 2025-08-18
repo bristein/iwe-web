@@ -103,9 +103,6 @@ export function rateLimit(config: Partial<RateLimitConfig> = {}) {
       );
     }
 
-    // Add rate limit headers to successful responses
-    const remaining = finalConfig.maxRequests - entry.count;
-
     // Return null to indicate the request should proceed
     return null;
   };

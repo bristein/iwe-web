@@ -20,8 +20,8 @@ if (!process.env.NEXT_PHASE) {
 }
 
 const getSecret = () => {
-  const jwtSecret = process.env.NEXT_PHASE 
-    ? (process.env.JWT_SECRET || 'build-time-placeholder')
+  const jwtSecret = process.env.NEXT_PHASE
+    ? process.env.JWT_SECRET || 'build-time-placeholder'
     : getJwtSecret();
   return new TextEncoder().encode(jwtSecret);
 };
