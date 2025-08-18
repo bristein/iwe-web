@@ -13,11 +13,11 @@ export default defineConfig({
   testDir: './tests/integration',
   fullyParallel: true, // Enable parallel execution for better performance
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 1,
-  workers: 1, // Use single worker to ensure test stability and avoid race conditions
-  timeout: 30000, // Increase timeout for stability
+  retries: process.env.CI ? 2 : 0, // Reduce retries for faster execution
+  workers: process.env.CI ? 2 : 3, // Enable controlled parallel execution
+  timeout: 60000, // Longer timeout for complex tests but should complete much faster
   expect: {
-    timeout: 10000, // Increase assertion timeout for better reliability
+    timeout: 15000, // Increase assertion timeout for reliability
   },
   reporter: [
     ['html'],
@@ -30,8 +30,8 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    actionTimeout: 15000, // 15 second action timeout
-    navigationTimeout: 30000, // 30 second navigation timeout
+    actionTimeout: 10000, // 10 second action timeout (most actions should be much faster)
+    navigationTimeout: 20000, // 20 second navigation timeout
   },
   globalSetup: require.resolve('./tests/utils/global-setup.ts'),
   globalTeardown: require.resolve('./tests/utils/global-teardown.ts'),

@@ -1,30 +1,17 @@
 import { getGlobalTestServer } from './mongodb-test-server';
 import { spawn, execSync } from 'child_process';
 import * as http from 'http';
-import * as os from 'os';
+// import * as os from 'os';
 
 let webServerProcess: import('child_process').ChildProcess | null = null;
 
-async function waitForServer(url: string, timeout: number = 120000): Promise<void> {
+async function waitForServer(url: string, timeout: number = 60000): Promise<void> {
   const startTime = Date.now();
   const healthUrl = `${url}/api/health`;
 
   while (Date.now() - startTime < timeout) {
     try {
-      // First check if server is responding
-      await new Promise((resolve, reject) => {
-        const request = http.get(url, (res) => {
-          if (res.statusCode === 200 || res.statusCode === 404) {
-            resolve(true);
-          } else {
-            reject(new Error(`Status code: ${res.statusCode}`));
-          }
-        });
-        request.on('error', reject);
-        request.setTimeout(1000);
-      });
-
-      // Then check health endpoint for database connectivity
+      // Check health endpoint directly for database connectivity
       await new Promise((resolve, reject) => {
         http
           .get(healthUrl, (res) => {
@@ -46,13 +33,13 @@ async function waitForServer(url: string, timeout: number = 120000): Promise<voi
             });
           })
           .on('error', reject)
-          .setTimeout(1000);
+          .setTimeout(2000); // Increased timeout for individual requests
       });
 
       return; // Server is ready with database connected
     } catch {
       // Server not ready yet, wait a bit
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Reduced wait time between checks
     }
   }
 
@@ -66,7 +53,7 @@ async function globalSetup() {
     // Check if a web server is already running (e.g., from Vitest tests)
     let serverAlreadyRunning = false;
     try {
-      await waitForServer('http://localhost:3000', 2000);
+      await waitForServer('http://localhost:3000', 3000); // Slightly longer check for existing server
       serverAlreadyRunning = true;
       console.log('📡 Web server already running, reusing existing server');
     } catch {
