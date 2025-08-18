@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Box, Container, Flex, Heading, HStack, Text, Button, Skeleton } from '@chakra-ui/react';
+import { Box, Container, Flex, Heading, HStack, Text, Skeleton } from '@chakra-ui/react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { ColorModeButton } from '@/components/ui/color-mode';
 import { FormButton } from '@/components';

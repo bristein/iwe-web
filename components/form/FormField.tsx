@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Box, Input, Field, InputProps } from '@chakra-ui/react';
+import { Input, Field, InputProps } from '@chakra-ui/react';
 
 interface FormFieldProps extends InputProps {
   label: string;

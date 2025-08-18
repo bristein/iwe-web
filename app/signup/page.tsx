@@ -47,25 +47,6 @@ function SignupContent() {
     }
   }, [user, router, forceAccess]);
 
-  const getPasswordStrength = (password: string) => {
-    let strength = 0;
-    const checks = [
-      password.length >= 8,
-      /[A-Z]/.test(password),
-      /[a-z]/.test(password),
-      /\d/.test(password),
-      /[!@#$%^&*(),.?":{}|<>]/.test(password),
-    ];
-
-    strength = checks.filter(Boolean).length;
-    return { strength, total: checks.length };
-  };
-
-  const passwordStrength = getPasswordStrength(password);
-  const strengthPercentage = (passwordStrength.strength / passwordStrength.total) * 100;
-  const strengthColor =
-    strengthPercentage < 40 ? 'red' : strengthPercentage < 80 ? 'yellow' : 'green';
-
   const validateForm = () => {
     let isValid = true;
     setEmailError('');
@@ -131,7 +112,7 @@ function SignupContent() {
       } else {
         setError(result.error || 'Signup failed');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);

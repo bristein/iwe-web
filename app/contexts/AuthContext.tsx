@@ -1,7 +1,6 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User } from '@/lib/models/user';
 
 interface SanitizedUser {
   _id: string;

@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
     const usersCollection = await getUsersCollection();
 
     // Find user by email (case-insensitive)
-    const user = await usersCollection.findOne({ 
-      email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+    const user = await usersCollection.findOne({
+      email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
     });
     if (!user) {
       authLogger.info('Login attempt failed - user not found', { email });

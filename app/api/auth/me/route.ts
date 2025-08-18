@@ -11,12 +11,12 @@ export async function GET() {
 
     if (!currentUser) {
       const response = NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-      
+
       // Add security headers even for authentication error responses
       response.headers.set('X-Content-Type-Options', 'nosniff');
       response.headers.set('X-Frame-Options', 'DENY');
       response.headers.set('X-XSS-Protection', '1; mode=block');
-      
+
       return response;
     }
 
@@ -28,12 +28,12 @@ export async function GET() {
 
     if (!user) {
       const response = NextResponse.json({ error: 'User not found' }, { status: 404 });
-      
+
       // Add security headers even for error responses
       response.headers.set('X-Content-Type-Options', 'nosniff');
       response.headers.set('X-Frame-Options', 'DENY');
       response.headers.set('X-XSS-Protection', '1; mode=block');
-      
+
       return response;
     }
 
@@ -41,12 +41,12 @@ export async function GET() {
     const response = NextResponse.json({
       user: sanitizeUser(user),
     });
-    
+
     // Add security headers
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('X-XSS-Protection', '1; mode=block');
-    
+
     return response;
   } catch (error) {
     console.error('Get current user error:', error);
@@ -54,12 +54,12 @@ export async function GET() {
       { error: 'An error occurred while fetching user data' },
       { status: 500 }
     );
-    
+
     // Add security headers even for error responses
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('X-XSS-Protection', '1; mode=block');
-    
+
     return response;
   }
 }
