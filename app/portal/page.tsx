@@ -18,6 +18,93 @@ import { DashboardCard, FormButton } from '@/components';
 import { FaFileAlt, FaPlus, FaCog, FaBook, FaBookOpen, FaFeatherAlt } from 'react-icons/fa';
 import { Project } from '@/lib/models/project';
 
+// Utility functions moved outside component for performance
+const getProjectIcon = (genre?: string) => {
+  // Map genre or use default icons based on common genres
+  switch (genre?.toLowerCase()) {
+    case 'fantasy':
+    case 'sci-fi':
+    case 'science fiction':
+      return <FaBookOpen />;
+    case 'short story':
+    case 'poetry':
+      return <FaFeatherAlt />;
+    default:
+      return <FaBook />;
+  }
+};
+
+const getStatusColor = (status: Project['status']) => {
+  switch (status) {
+    case 'draft':
+    case 'planning':
+      return 'gray';
+    case 'active':
+    case 'drafting':
+      return 'blue';
+    case 'editing':
+      return 'yellow';
+    case 'completed':
+      return 'green';
+    case 'archived':
+      return 'red';
+    default:
+      return 'gray';
+  }
+};
+
+const formatStatus = (status: Project['status']) => {
+  return status.replace(/_/g, ' ').charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
+};
+
+// Memoized project card component for performance
+const ProjectCard = React.memo(
+  ({ project, onOpen }: { project: Project; onOpen: (id: string) => void }) => {
+    const projectId = project._id?.toString() || '';
+
+    return (
+      <DashboardCard
+        key={projectId}
+        title={project.title}
+        description={project.description || 'No description provided'}
+        icon={getProjectIcon(project.genre)}
+      >
+        <VStack align="stretch" gap="3">
+          <HStack justify="space-between">
+            <Badge colorScheme={getStatusColor(project.status)} size="sm">
+              {formatStatus(project.status)}
+            </Badge>
+            <Text fontSize="sm" color="fg.muted">
+              {project.wordCount?.toLocaleString() || 0} /{' '}
+              {project.wordCountGoal?.toLocaleString() || '—'} words
+            </Text>
+          </HStack>
+          {project.genre && (
+            <Text fontSize="xs" color="fg.muted">
+              Genre: {project.genre}
+            </Text>
+          )}
+          <Text fontSize="xs" color="fg.muted">
+            Last modified: {new Date(project.updatedAt).toLocaleDateString()}
+          </Text>
+          <FormButton
+            variant="secondary"
+            size="sm"
+            data-testid={`open-project-${projectId}`}
+            width="100%"
+            onClick={() => onOpen(projectId)}
+            aria-label={`Open project ${project.title}`}
+          >
+            Open Project
+          </FormButton>
+        </VStack>
+      </DashboardCard>
+    );
+  }
+);
+
+ProjectCard.displayName = 'ProjectCard';
+
 export default function PortalPage() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -26,7 +113,20 @@ export default function PortalPage() {
 
   const fetchProjects = useCallback(
     async (signal?: AbortSignal) => {
-      if (!user?._id) return;
+      // Validate user ID before API call
+      if (!user?._id) {
+        setError('User session is invalid. Please log in again.');
+        setLoading(false);
+        return;
+      }
+
+      // Additional validation for user ID format
+      if (typeof user._id !== 'string' || user._id.length < 1) {
+        console.error('Invalid user ID format');
+        setError('Invalid user session. Please log in again.');
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);
@@ -71,48 +171,15 @@ export default function PortalPage() {
     };
   }, [fetchProjects]);
 
-  const getProjectIcon = (genre?: string) => {
-    // Map genre or use default icons based on common genres
-    switch (genre?.toLowerCase()) {
-      case 'fantasy':
-      case 'sci-fi':
-      case 'science fiction':
-        return <FaBookOpen />;
-      case 'short story':
-      case 'poetry':
-        return <FaFeatherAlt />;
-      default:
-        return <FaBook />;
+  // Memoized handler to prevent unnecessary re-renders
+  const handleProjectOpen = useCallback((projectId: string) => {
+    if (!projectId) {
+      console.error('Invalid project ID');
+      return;
     }
-  };
-
-  const getStatusColor = (status: Project['status']) => {
-    switch (status) {
-      case 'draft':
-      case 'planning':
-        return 'gray';
-      case 'active':
-      case 'drafting':
-        return 'blue';
-      case 'editing':
-        return 'yellow';
-      case 'completed':
-        return 'green';
-      case 'archived':
-        return 'red';
-      default:
-        return 'gray';
-    }
-  };
-
-  const formatStatus = (status: Project['status']) => {
-    return status.replace(/_/g, ' ').charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
-  };
-
-  const handleProjectOpen = (projectId: string) => {
     // TODO: Navigate to project editor page
     console.log('Opening project:', projectId);
-  };
+  }, []);
 
   const handleRetry = () => {
     fetchProjects();
@@ -170,51 +237,27 @@ export default function PortalPage() {
           </Alert.Root>
         ) : loading ? (
           <Center py="10">
-            <Spinner size="lg" color="brand.600" />
+            <Spinner size="lg" color="brand.600" data-testid="loading-spinner" />
           </Center>
         ) : projects.length > 0 ? (
           <Grid
             templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }}
             gap="6"
           >
-            {projects.map((project) => (
-              <DashboardCard
-                key={project._id?.toString()}
-                title={project.title}
-                description={project.description || 'No description provided'}
-                icon={getProjectIcon(project.genre)}
-              >
-                <VStack align="stretch" gap="3">
-                  <HStack justify="space-between">
-                    <Badge colorScheme={getStatusColor(project.status)} size="sm">
-                      {formatStatus(project.status)}
-                    </Badge>
-                    <Text fontSize="sm" color="fg.muted">
-                      {project.wordCount?.toLocaleString() || 0} /{' '}
-                      {project.wordCountGoal?.toLocaleString() || '—'} words
-                    </Text>
-                  </HStack>
-                  {project.genre && (
-                    <Text fontSize="xs" color="fg.muted">
-                      Genre: {project.genre}
-                    </Text>
-                  )}
-                  <Text fontSize="xs" color="fg.muted">
-                    Last modified: {new Date(project.updatedAt).toLocaleDateString()}
-                  </Text>
-                  <FormButton
-                    variant="secondary"
-                    size="sm"
-                    data-testid={`open-project-${project._id}`}
-                    width="100%"
-                    onClick={() => handleProjectOpen(project._id?.toString() || '')}
-                    aria-label={`Open project ${project.title}`}
-                  >
-                    Open Project
-                  </FormButton>
-                </VStack>
-              </DashboardCard>
-            ))}
+            {projects.map((project) => {
+              // Validate project has required ID
+              if (!project._id) {
+                console.warn('Project missing _id:', project);
+                return null;
+              }
+              return (
+                <ProjectCard
+                  key={project._id.toString()}
+                  project={project}
+                  onOpen={handleProjectOpen}
+                />
+              );
+            })}
           </Grid>
         ) : (
           <Box
