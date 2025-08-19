@@ -13,6 +13,7 @@ import {
   Center,
   Alert,
 } from '@chakra-ui/react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { DashboardCard, FormButton, CreateProjectModal } from '@/components';
 import { FaFileAlt, FaPlus, FaCog, FaBook, FaBookOpen, FaFeatherAlt } from 'react-icons/fa';
@@ -107,6 +108,7 @@ ProjectCard.displayName = 'ProjectCard';
 
 export default function PortalPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -158,14 +160,17 @@ export default function PortalPage() {
   }, [fetchProjects]);
 
   // Memoized handler to prevent unnecessary re-renders
-  const handleProjectOpen = useCallback((projectId: string) => {
-    if (!projectId) {
-      console.error('Invalid project ID');
-      return;
-    }
-    // TODO: Navigate to project editor page
-    console.log('Opening project:', projectId);
-  }, []);
+  const handleProjectOpen = useCallback(
+    (projectId: string) => {
+      if (!projectId) {
+        console.error('Invalid project ID');
+        return;
+      }
+      // Navigate to project editor page
+      router.push(`/portal/project/${projectId}`);
+    },
+    [router]
+  );
 
   const handleRetry = () => {
     fetchProjects();
