@@ -5,16 +5,20 @@ import { Box, Container, Flex, Heading, HStack, Text, Skeleton } from '@chakra-u
 import { useAuth } from '@/app/contexts/AuthContext';
 import { ColorModeButton } from '@/components/ui/color-mode';
 import { FormButton, CenteredPageLayout } from '@/components';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const { user, logout, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     await logout();
     router.push('/login');
   };
+
+  // Check if we're on a project detail page
+  const isProjectPage = pathname?.startsWith('/portal/project/');
 
   if (loading) {
     return (
@@ -59,6 +63,12 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     );
   }
 
+  // For project pages, render children directly without the portal header
+  if (isProjectPage) {
+    return <>{children}</>;
+  }
+
+  // For all other portal pages, render with the portal header
   return (
     <Box minH="100vh" bg="bg.canvas">
       {/* Header */}
