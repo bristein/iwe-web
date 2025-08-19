@@ -251,9 +251,9 @@ export default function ProjectSidebar({
   };
 
   return (
-    <VStack h="100%" align="stretch" gap="0">
+    <VStack h="100%" align="stretch" gap="0" bg="bg.default">
       {/* Search Bar */}
-      <Box p="3" borderBottomWidth="1px" borderColor="border.default">
+      <Box p="3" borderBottomWidth="1px" borderColor="border.default" bg="bg.default">
         <HStack>
           <Box position="relative" flex="1">
             <Input
