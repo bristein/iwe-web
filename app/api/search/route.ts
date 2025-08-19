@@ -45,7 +45,8 @@ export async function GET(request: NextRequest) {
     let user;
     try {
       user = await verifyToken(authToken);
-    } catch {
+    } catch (error) {
+      console.error('Auth verification failed:', error);
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 

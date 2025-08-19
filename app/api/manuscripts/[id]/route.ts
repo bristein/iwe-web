@@ -25,7 +25,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     let user;
     try {
       user = await verifyToken(authToken);
-    } catch {
+    } catch (error) {
+      console.error('Auth verification failed:', error);
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
@@ -75,7 +76,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     let user;
     try {
       user = await verifyToken(authToken);
-    } catch {
+    } catch (error) {
+      console.error('Auth verification failed:', error);
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
@@ -179,7 +181,8 @@ export async function DELETE(
     let user;
     try {
       user = await verifyToken(authToken);
-    } catch {
+    } catch (error) {
+      console.error('Auth verification failed:', error);
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 

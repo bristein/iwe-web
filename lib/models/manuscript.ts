@@ -49,7 +49,7 @@ export const MANUSCRIPT_STATUSES = ['outline', 'drafting', 'revision', 'complete
 
 /**
  * Calculates word count for manuscript content
- * Handles edge cases like multiple spaces, tabs, newlines, and punctuation
+ * Enhanced to handle contractions, hyphenated words, and punctuation more accurately
  * @param text The text to count words in
  * @returns Number of words
  */
@@ -57,15 +57,32 @@ export function calculateWordCount(text?: string): number {
   if (!text || typeof text !== 'string') return 0;
 
   // Remove excess whitespace and normalize
-  const normalized = text
+  let normalized = text
     .trim()
-    .replace(/\s+/g, ' ') // Replace multiple whitespace with single space
-    .replace(/[\r\n\t]+/g, ' '); // Replace line breaks and tabs with space
+    .replace(/[\r\n\t]+/g, ' ') // Replace line breaks and tabs with space
+    .replace(/\s+/g, ' '); // Replace multiple whitespace with single space
 
   if (normalized.length === 0) return 0;
 
+  // Handle special cases for more accurate word counting:
+  // 1. Preserve contractions (don't, won't, it's, etc.) as single words
+  // 2. Preserve hyphenated words (mother-in-law, twenty-one) as single words
+  // 3. Remove standalone punctuation but keep apostrophes and hyphens within words
+
+  // Remove punctuation except apostrophes and hyphens that are part of words
+  normalized = normalized.replace(/[^\w\s'-]/g, ' ');
+
   // Split on whitespace and filter out empty strings
-  const words = normalized.split(' ').filter((word) => word.length > 0);
+  const words = normalized.split(/\s+/).filter((word) => {
+    // Filter out empty strings and standalone punctuation
+    if (word.length === 0) return false;
+
+    // Filter out strings that are only punctuation (like standalone apostrophes or hyphens)
+    if (/^['-]+$/.test(word)) return false;
+
+    // Keep everything else (including contractions and hyphenated words)
+    return true;
+  });
 
   return words.length;
 }

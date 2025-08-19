@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
     let user;
     try {
       user = await verifyToken(authToken);
-    } catch {
+    } catch (error) {
+      console.error('Auth verification failed:', error);
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
@@ -120,7 +121,8 @@ export async function POST(request: NextRequest) {
     let user;
     try {
       user = await verifyToken(authToken);
-    } catch {
+    } catch (error) {
+      console.error('Auth verification failed:', error);
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
@@ -150,17 +152,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Optimize order calculation using aggregation for better performance
     let order = validatedData.order;
     if (order === undefined || order === 0) {
-      const maxOrder = await collection.findOne(
-        {
-          projectId: new ObjectId(validatedData.projectId),
-          parentId: validatedData.parentId ? new ObjectId(validatedData.parentId) : undefined,
-        },
-        { sort: { order: -1 }, projection: { order: 1 } }
-      );
+      // Use aggregation to get max order in a single efficient query
+      const result = await collection
+        .aggregate([
+          {
+            $match: {
+              projectId: new ObjectId(validatedData.projectId),
+              parentId: validatedData.parentId ? new ObjectId(validatedData.parentId) : null,
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              maxOrder: { $max: '$order' },
+            },
+          },
+        ])
+        .toArray();
 
-      order = maxOrder ? maxOrder.order + 1 : 0;
+      order = result.length > 0 && result[0].maxOrder !== null ? result[0].maxOrder + 1 : 0;
     }
 
     const wordCount =

@@ -22,7 +22,8 @@
       "WebSearch",
       "Bash(caddy:*)",
       "Bash(DISABLE_RATE_LIMIT=true pnpm dev)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "WebFetch(domain:www.mongodb.com)"
     ],
     "deny": [],
     "ask": []
