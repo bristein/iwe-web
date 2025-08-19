@@ -1130,39 +1130,58 @@ test.describe('Portal Page - Project Management', () => {
         });
       });
 
-      // Intercept navigation to prevent actual page change during rapid clicking
-      await page.route('**/portal/project/**', async (route) => {
-        // Just abort the navigation to keep us on the same page
-        await route.abort();
-      });
-
       await authHelper.signup(user);
       await page.goto('/portal');
 
       const openButton = page.getByTestId(`open-project-${mockProject._id}`);
       await expect(openButton).toBeVisible();
 
-      // Track navigation attempts
-      let navigationAttempts = 0;
-      page.on('framenavigated', () => {
-        navigationAttempts++;
+      // Override the router.push method to prevent navigation
+      await page.evaluate(() => {
+        // Store the original push method
+        const originalPush = window.history.pushState;
+        let pushCount = 0;
+
+        // Override to count navigation attempts without actually navigating
+        window.history.pushState = function () {
+          pushCount++;
+          console.log('Navigation attempt:', pushCount);
+          // Don't actually navigate
+          return;
+        };
+
+        // Store count for later retrieval
+        (window as unknown as { __navigationAttempts: () => number }).__navigationAttempts = () =>
+          pushCount;
+
+        // Restore after test
+        (window as unknown as { __restoreNavigation: () => void }).__restoreNavigation = () => {
+          window.history.pushState = originalPush;
+        };
       });
 
       // Rapidly click the button multiple times
-      // The clicks should be handled gracefully even though navigation is prevented
       for (let i = 0; i < 5; i++) {
-        await openButton.click().catch(() => {
-          // Ignore errors from rapid clicking as navigation is prevented
-        });
+        await openButton.click();
         await page.waitForTimeout(50);
       }
+
+      // Get navigation attempts count
+      const navigationAttempts = await page.evaluate(() =>
+        (window as unknown as { __navigationAttempts: () => number }).__navigationAttempts()
+      );
+
+      // Restore original navigation
+      await page.evaluate(() =>
+        (window as unknown as { __restoreNavigation: () => void }).__restoreNavigation()
+      );
 
       // Page should still be functional
       await expect(openButton).toBeVisible();
       await expect(page.getByText('Rapid Click Test')).toBeVisible();
 
-      // Verify that click handler was attempting to navigate
-      expect(navigationAttempts).toBeGreaterThanOrEqual(1);
+      // Verify that multiple navigation attempts were made
+      expect(navigationAttempts).toBeGreaterThanOrEqual(5);
     });
 
     test('should test React.memo optimization for ProjectCard component', async ({ page }) => {
