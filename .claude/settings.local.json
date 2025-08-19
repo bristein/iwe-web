@@ -16,9 +16,15 @@
       "Bash(gh pr close:*)",
       "Bash(pnpm lint:*)",
       "Bash(npx tsc:*)",
-      "Bash(pnpm format:*)"
+      "Bash(pnpm format:*)",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_network_requests",
+      "WebSearch",
+      "Bash(caddy:*)",
+      "Bash(DISABLE_RATE_LIMIT=true pnpm dev)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enabledMcpjsonServers": ["context7", "playwright", "socket-mcp", "sequential-thinking"]
 }
