@@ -13,3 +13,11 @@ export { DashboardCard } from './layout/DashboardCard';
 
 // Modal Components
 export { CreateProjectModal } from './CreateProjectModal';
+
+// Project Components
+export { default as ProjectSidebar } from './project/ProjectSidebar';
+export { default as ProjectInfoPanel } from './project/ProjectInfoPanel';
+export { default as DocumentTabs } from './project/DocumentTabs';
+
+// Utility Components
+export { ErrorBoundary, withErrorBoundary } from './ErrorBoundary';
