@@ -166,6 +166,32 @@ pnpm dev
 DISABLE_RATE_LIMIT=true pnpm dev
 ```
 
+### Local Development with Custom Domain (Caddy)
+
+The project includes Caddy configuration for a better local development experience with custom domains.
+
+```bash
+# Check if Caddy is installed
+pnpm dev:check-caddy
+
+# Install Caddy (if not installed)
+# macOS: brew install caddy
+# Linux: See https://caddyserver.com/docs/install
+
+# Run development server with Caddy (app.iwe.localhost)
+pnpm dev:local
+
+# Stop Caddy server
+pnpm dev:stop
+```
+
+**Benefits:**
+
+- Access the app at `http://app.iwe.localhost` instead of `localhost:3000`
+- No need to edit `/etc/hosts` file (.localhost domains resolve automatically)
+- Automatic process management and cleanup
+- Optional HTTPS support (see Caddyfile)
+
 ### Database Management
 
 ```bash

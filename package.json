@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:local": "caddy stop 2>/dev/null; caddy start && next dev",
+    "dev:local": "node scripts/check-caddy.mjs && ./scripts/dev-with-caddy.sh",
     "dev:stop": "caddy stop",
+    "dev:check-caddy": "node scripts/check-caddy.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
