@@ -128,3 +128,13 @@ export async function getProjectsCollection(): Promise<Collection> {
   const db = await getDatabase();
   return db.collection('projects');
 }
+
+export async function getWorldBiblesCollection(): Promise<Collection> {
+  const db = await getDatabase();
+  return db.collection('worldbibles');
+}
+
+export async function getManuscriptsCollection(): Promise<Collection> {
+  const db = await getDatabase();
+  return db.collection('manuscripts');
+}

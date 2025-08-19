@@ -27,16 +27,43 @@ interface RateLimitStore {
 // In-memory store for rate limiting
 // In production, use Redis or similar distributed cache
 const rateLimitStore: RateLimitStore = {};
+let cleanupInterval: NodeJS.Timeout | null = null;
 
 // Clean up old entries every minute
-setInterval(() => {
-  const now = Date.now();
-  Object.keys(rateLimitStore).forEach((key) => {
-    if (rateLimitStore[key].resetTime < now) {
-      delete rateLimitStore[key];
+function startCleanupInterval() {
+  if (cleanupInterval) return; // Already running
+
+  cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    const keysToDelete: string[] = [];
+
+    // Batch deletions for better performance
+    for (const key in rateLimitStore) {
+      if (rateLimitStore[key].resetTime < now) {
+        keysToDelete.push(key);
+      }
+    }
+
+    // Delete expired entries
+    keysToDelete.forEach((key) => delete rateLimitStore[key]);
+
+    // Log cleanup in development
+    if (process.env.NODE_ENV === 'development' && keysToDelete.length > 0) {
+      console.log(`[Rate Limit] Cleaned up ${keysToDelete.length} expired entries`);
+    }
+  }, 60000);
+
+  // Ensure cleanup stops when process exits
+  process.on('beforeExit', () => {
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+      cleanupInterval = null;
     }
   });
-}, 60000);
+}
+
+// Start cleanup only when first used
+let cleanupStarted = false;
 
 interface RateLimitConfig {
   windowMs: number; // Time window in milliseconds
@@ -120,3 +147,62 @@ export const signupRateLimit = rateLimit({
   maxRequests: 20, // 20 signups per hour per IP (reasonable for testing and shared networks)
   message: 'Too many signup attempts, please try again later',
 });
+
+// Simple rate limit checker for general API endpoints
+export function checkRateLimit(identifier: string, windowMs = 60000, maxRequests = 100): boolean {
+  // Skip rate limiting if disabled via environment variable
+  if (process.env.DISABLE_RATE_LIMIT === 'true') {
+    return true;
+  }
+
+  // Start cleanup interval on first use
+  if (!cleanupStarted) {
+    cleanupStarted = true;
+    startCleanupInterval();
+  }
+
+  const now = Date.now();
+  const key = `api:${identifier}`;
+  const resetTime = now + windowMs;
+
+  // Get or create rate limit entry
+  if (!rateLimitStore[key] || rateLimitStore[key].resetTime < now) {
+    rateLimitStore[key] = {
+      count: 0,
+      resetTime,
+    };
+  }
+
+  const entry = rateLimitStore[key];
+  entry.count++;
+
+  // Return false if limit exceeded
+  return entry.count <= maxRequests;
+}
+
+/**
+ * Get current rate limit statistics (for monitoring)
+ */
+export function getRateLimitStats(): {
+  totalKeys: number;
+  activeKeys: number;
+  expiredKeys: number;
+} {
+  const now = Date.now();
+  let activeKeys = 0;
+  let expiredKeys = 0;
+
+  for (const key in rateLimitStore) {
+    if (rateLimitStore[key].resetTime >= now) {
+      activeKeys++;
+    } else {
+      expiredKeys++;
+    }
+  }
+
+  return {
+    totalKeys: Object.keys(rateLimitStore).length,
+    activeKeys,
+    expiredKeys,
+  };
+}
