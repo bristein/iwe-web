@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:local": "caddy stop 2>/dev/null; caddy start && next dev",
+    "dev:stop": "caddy stop",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

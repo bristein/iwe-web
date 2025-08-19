@@ -1,9 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Experimental features for better performance
+  // Server actions configuration
   experimental: {
-    // Set server actions body size limit (for future use)
-    serverActionsBodySizeLimit: '5mb',
+    serverActions: {
+      bodySizeLimit: '5mb',
+    },
   },
 };
 

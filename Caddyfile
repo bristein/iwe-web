@@ -1,0 +1,10 @@
+# Simple Caddyfile for IWE Web local development
+# No /etc/hosts editing required - .localhost domains resolve automatically
+
+app.iwe.localhost {
+    reverse_proxy localhost:3000
+    
+    # Optional: Enable HTTPS with auto-generated local certificate
+    # Uncomment the next line if you want HTTPS (https://app.iwe.localhost)
+    # tls internal
+}
