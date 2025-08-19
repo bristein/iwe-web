@@ -52,13 +52,7 @@ export function CenteredPageLayout({
       py={centerContent ? '12' : containerPadding}
       px={centerContent ? '4' : '0'}
     >
-      <Container
-        maxW={maxW}
-        px={centerContent ? '6' : '4'}
-        mx="auto"
-        width="100%"
-        {...containerProps}
-      >
+      <Container maxW={maxW} px={centerContent ? '6' : '4'} width="100%" {...containerProps}>
         {children}
       </Container>
     </Box>
