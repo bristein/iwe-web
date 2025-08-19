@@ -21,7 +21,8 @@
       "mcp__playwright__browser_network_requests",
       "WebSearch",
       "Bash(caddy:*)",
-      "Bash(DISABLE_RATE_LIMIT=true pnpm dev)"
+      "Bash(DISABLE_RATE_LIMIT=true pnpm dev)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []
