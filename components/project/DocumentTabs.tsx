@@ -176,17 +176,17 @@ Aria begins as a sheltered academic but must learn to apply her theoretical know
   }
 
   return (
-    <VStack h="100%" align="stretch" gap="0">
+    <Box h="100%" display="flex" flexDirection="column">
       {/* Document Tabs */}
-      <Box borderBottomWidth="1px" borderColor="border.default" bg="bg.default">
+      <Box borderBottomWidth="1px" borderColor="border.default" bg="bg.default" flexShrink="0">
         <Tabs.Root
           value={activeTab}
           onValueChange={(details) => setActiveTab(details.value)}
           size="sm"
         >
-          <HStack gap="0">
-            <Box flex="1" overflowX="auto">
-              <Tabs.List borderBottomWidth="0">
+          <HStack gap="0" h="auto">
+            <Box flex="1" overflowX="auto" overflowY="hidden">
+              <Tabs.List borderBottomWidth="0" h="auto">
                 {openDocuments.map((doc) => (
                   <Tabs.Trigger key={doc.id} value={doc.id} position="relative" pr="8">
                     <HStack gap="2">
@@ -313,6 +313,6 @@ Aria begins as a sheltered academic but must learn to apply her theoretical know
           </VStack>
         )}
       </Box>
-    </VStack>
+    </Box>
   );
 }

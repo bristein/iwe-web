@@ -51,9 +51,9 @@ export default function ProjectInfoPanel({
   );
 
   return (
-    <VStack h="100%" align="stretch" gap="0">
+    <VStack h="100%" align="stretch" gap="0" bg="bg.default">
       {/* Header */}
-      <HStack p="3" borderBottomWidth="1px" borderColor="border.default">
+      <HStack p="3" borderBottomWidth="1px" borderColor="border.default" bg="bg.default">
         <Text fontSize="sm" fontWeight="semibold" flex="1">
           Document Info
         </Text>
