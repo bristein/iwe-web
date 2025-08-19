@@ -10,6 +10,7 @@ export { Switch } from './ui/Switch';
 export { PageContainer } from './layout/PageContainer';
 export { FormCard } from './layout/FormCard';
 export { DashboardCard } from './layout/DashboardCard';
+export { CenteredPageLayout } from './layout/CenteredPageLayout';
 
 // Modal Components
 export { CreateProjectModal } from './CreateProjectModal';

@@ -4,7 +4,7 @@ import React from 'react';
 import { Box, Container, Flex, Heading, HStack, Text, Skeleton } from '@chakra-ui/react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { ColorModeButton } from '@/components/ui/color-mode';
-import { FormButton } from '@/components';
+import { FormButton, CenteredPageLayout } from '@/components';
 import { useRouter } from 'next/navigation';
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -63,7 +63,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     <Box minH="100vh" bg="bg.canvas">
       {/* Header */}
       <Box borderBottomWidth="1px" borderColor="border.muted" bg="bg.default" shadow="sm">
-        <Container maxW="7xl" py="6">
+        <Container maxW="7xl" py="6" px="4" mx="auto" width="100%">
           <Flex justify="space-between" align="center">
             <HStack gap="3">
               <Box
@@ -134,9 +134,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       </Box>
 
       {/* Main Content */}
-      <Container maxW="7xl" py="10">
-        {children}
-      </Container>
+      <CenteredPageLayout containerPadding="10">{children}</CenteredPageLayout>
     </Box>
   );
 }
