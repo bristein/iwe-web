@@ -1,4 +1,4 @@
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryServer, MongoMemoryReplSet } from 'mongodb-memory-server';
 import { MongoDBContainer, StartedMongoDBContainer } from '@testcontainers/mongodb';
 import { MongoClient, Db } from 'mongodb';
 
@@ -8,10 +8,12 @@ export interface TestServerConfig {
   port?: number;
   mongoVersion?: string;
   enableLogging?: boolean;
+  useReplSet?: boolean; // Use replica set for transaction support
 }
 
 export class MongoDBTestServer {
   private memoryServer?: MongoMemoryServer;
+  private memoryReplSet?: MongoMemoryReplSet;
   private dockerContainer?: StartedMongoDBContainer;
   private client?: MongoClient;
   private connectionUri?: string;
@@ -25,6 +27,7 @@ export class MongoDBTestServer {
       port: config.port, // Don't set default port, let MongoDB choose
       mongoVersion: config.mongoVersion || '7.0.14',
       enableLogging: config.enableLogging || process.env.DEBUG === 'true',
+      useReplSet: config.useReplSet !== false, // Default to true for transaction support
     };
   }
 
@@ -56,23 +59,40 @@ export class MongoDBTestServer {
    * Start MongoDB using memory server (fast, for local testing)
    */
   private async startMemoryMongoDB(): Promise<void> {
-    const instanceConfig: Record<string, unknown> = {
-      dbName: this.config.dbName,
-    };
+    if (this.config.useReplSet) {
+      // Use replica set for transaction support
+      this.memoryReplSet = await MongoMemoryReplSet.create({
+        replSet: {
+          count: 1, // Single node replica set is sufficient for testing
+          dbName: this.config.dbName,
+          storageEngine: 'wiredTiger',
+        },
+        binary: {
+          version: this.config.mongoVersion,
+        },
+      });
 
-    // Only set port if explicitly provided
-    if (this.config.port) {
-      instanceConfig.port = this.config.port;
+      this.connectionUri = this.memoryReplSet.getUri();
+    } else {
+      // Use single server (no transaction support)
+      const instanceConfig: Record<string, unknown> = {
+        dbName: this.config.dbName,
+      };
+
+      // Only set port if explicitly provided
+      if (this.config.port) {
+        instanceConfig.port = this.config.port;
+      }
+
+      this.memoryServer = await MongoMemoryServer.create({
+        instance: instanceConfig,
+        binary: {
+          version: this.config.mongoVersion,
+        },
+      });
+
+      this.connectionUri = this.memoryServer.getUri();
     }
-
-    this.memoryServer = await MongoMemoryServer.create({
-      instance: instanceConfig,
-      binary: {
-        version: this.config.mongoVersion,
-      },
-    });
-
-    this.connectionUri = this.memoryServer.getUri();
   }
 
   /**
@@ -191,6 +211,11 @@ export class MongoDBTestServer {
       if (this.memoryServer) {
         await this.memoryServer.stop();
         this.memoryServer = undefined;
+      }
+
+      if (this.memoryReplSet) {
+        await this.memoryReplSet.stop();
+        this.memoryReplSet = undefined;
       }
 
       if (this.dockerContainer) {
