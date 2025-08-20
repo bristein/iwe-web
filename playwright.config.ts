@@ -11,10 +11,10 @@ dotenv.config({ path: path.resolve(__dirname, '.env'), override: false });
 
 export default defineConfig({
   testDir: './tests/integration',
-  fullyParallel: true, // Enable parallel execution for better performance
+  fullyParallel: false, // Disable full parallel to prevent replica set contention
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0, // Reduce retries for faster execution
-  workers: process.env.CI ? 2 : 3, // Enable controlled parallel execution
+  workers: process.env.CI ? 1 : 2, // Reduce workers to prevent MongoDB replica set issues
   timeout: 60000, // Longer timeout for complex tests but should complete much faster
   expect: {
     timeout: 15000, // Increase assertion timeout for reliability
