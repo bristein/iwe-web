@@ -13,6 +13,14 @@ import {
   FiSave,
 } from 'react-icons/fi';
 
+// Constants
+const SAVE_STATUS_DISPLAY_DURATION = 3000; // 3 seconds
+const TIME_UPDATE_INTERVAL = 60000; // 1 minute
+const DEFAULT_AUTO_SAVE_DELAY = 2000; // 2 seconds
+const POSITION_OFFSET = 20; // px from edge
+const Z_INDEX_MODAL = 1000;
+const PULSE_ANIMATION_DURATION = '1s';
+
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error' | 'conflict';
 type ConnectionStatus = 'online' | 'offline' | 'reconnecting';
 
@@ -59,7 +67,7 @@ export const AutoSaveIndicator: React.FC<AutoSaveIndicatorProps> = ({
           if (status === 'saved') {
             setIsVisible(false);
           }
-        }, 3000);
+        }, SAVE_STATUS_DISPLAY_DURATION);
         return () => clearTimeout(timer);
       }
     }
@@ -87,7 +95,7 @@ export const AutoSaveIndicator: React.FC<AutoSaveIndicatorProps> = ({
       };
 
       updateTimeAgo();
-      const interval = setInterval(updateTimeAgo, 60000);
+      const interval = setInterval(updateTimeAgo, TIME_UPDATE_INTERVAL);
       return () => clearInterval(interval);
     }
   }, [lastSaveTime]);
@@ -97,25 +105,25 @@ export const AutoSaveIndicator: React.FC<AutoSaveIndicatorProps> = ({
 
     const styles: React.CSSProperties = {
       position: 'fixed',
-      zIndex: 1000,
+      zIndex: Z_INDEX_MODAL,
     };
 
     switch (placement) {
       case 'top-right':
-        styles.top = '20px';
-        styles.right = '20px';
+        styles.top = `${POSITION_OFFSET}px`;
+        styles.right = `${POSITION_OFFSET}px`;
         break;
       case 'top-left':
-        styles.top = '20px';
-        styles.left = '20px';
+        styles.top = `${POSITION_OFFSET}px`;
+        styles.left = `${POSITION_OFFSET}px`;
         break;
       case 'bottom-right':
-        styles.bottom = '20px';
-        styles.right = '20px';
+        styles.bottom = `${POSITION_OFFSET}px`;
+        styles.right = `${POSITION_OFFSET}px`;
         break;
       case 'bottom-left':
-        styles.bottom = '20px';
-        styles.left = '20px';
+        styles.bottom = `${POSITION_OFFSET}px`;
+        styles.left = `${POSITION_OFFSET}px`;
         break;
     }
 
@@ -202,7 +210,10 @@ export const AutoSaveIndicator: React.FC<AutoSaveIndicatorProps> = ({
             <Tooltip.Trigger asChild>
               <Box
                 css={{
-                  animation: connectionStatus === 'reconnecting' ? 'pulse 1s infinite' : undefined,
+                  animation:
+                    connectionStatus === 'reconnecting'
+                      ? `pulse ${PULSE_ANIMATION_DURATION} infinite`
+                      : undefined,
                   '@keyframes pulse': pulseAnimation,
                 }}
               >
@@ -222,7 +233,8 @@ export const AutoSaveIndicator: React.FC<AutoSaveIndicatorProps> = ({
         <HStack gap={1}>
           <Box
             css={{
-              animation: status === 'saving' ? 'pulse 1s infinite' : undefined,
+              animation:
+                status === 'saving' ? `pulse ${PULSE_ANIMATION_DURATION} infinite` : undefined,
               '@keyframes pulse': pulseAnimation,
             }}
           >
@@ -267,7 +279,7 @@ interface AutoSaveProviderProps {
 export const AutoSaveProvider: React.FC<AutoSaveProviderProps> = ({
   children,
   onSave,
-  autoSaveDelay = 2000,
+  autoSaveDelay = DEFAULT_AUTO_SAVE_DELAY,
   enabled = true,
 }) => {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');

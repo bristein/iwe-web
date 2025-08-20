@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useTransition } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import {
@@ -91,13 +91,16 @@ const TreeNode: React.FC<{
   const { open: isOpen, onToggle } = useDisclosure({ defaultOpen: level === 0 });
   const categoryDocuments = documents.filter((doc) => doc.categoryId === category.id);
 
-  const filteredDocuments = searchTerm
-    ? categoryDocuments.filter(
-        (doc) =>
-          doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          doc.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-      )
-    : categoryDocuments;
+  const filteredDocuments = useMemo(() => {
+    if (!searchTerm) return categoryDocuments;
+
+    const searchLower = searchTerm.toLowerCase();
+    return categoryDocuments.filter(
+      (doc) =>
+        doc.title.toLowerCase().includes(searchLower) ||
+        doc.tags.some((tag) => tag.toLowerCase().includes(searchLower))
+    );
+  }, [categoryDocuments, searchTerm]);
 
   const [{ isOver }, drop] = useDrop({
     accept: ItemTypes.DOCUMENT,
@@ -290,6 +293,7 @@ export const WorldBibleTree: React.FC<WorldBibleTreeProps> = ({
   showRecentDocuments = true,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isPending, startTransition] = useTransition();
 
   const recentDocuments = useMemo(() => {
     if (!showRecentDocuments) return [];
@@ -342,8 +346,9 @@ export const WorldBibleTree: React.FC<WorldBibleTreeProps> = ({
           <Input
             placeholder="Search documents..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => startTransition(() => setSearchTerm(e.target.value))}
             size="sm"
+            disabled={isPending}
           />
           {onCreateCategory && (
             <IconButton size="sm" aria-label="New category" onClick={() => onCreateCategory()}>

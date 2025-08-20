@@ -65,7 +65,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   maxHeight = '100vh',
   distractionFreeMode: initialDistractionFree = false,
 }) => {
-  const [autoSaveTimer, setAutoSaveTimer] = useState<NodeJS.Timeout | null>(null);
+  const autoSaveTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [distractionFreeMode, setDistractionFreeMode] = useState(initialDistractionFree);
   const [sessionStartWords, setSessionStartWords] = useState(0);
@@ -103,27 +103,27 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       onChange(newContent);
 
       if (autoSave && onSave) {
-        if (autoSaveTimer) {
-          clearTimeout(autoSaveTimer);
+        if (autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
         }
-        const timer = setTimeout(() => {
+        autoSaveTimerRef.current = setTimeout(() => {
           setIsSaving(true);
           onSave();
           setTimeout(() => setIsSaving(false), 1000);
         }, autoSaveDelay);
-        setAutoSaveTimer(timer);
       }
     },
-    [onChange, autoSave, onSave, autoSaveDelay, autoSaveTimer]
+    [onChange, autoSave, onSave, autoSaveDelay]
   );
 
   useEffect(() => {
     return () => {
-      if (autoSaveTimer) {
-        clearTimeout(autoSaveTimer);
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
       }
     };
-  }, [autoSaveTimer]);
+  }, []);
 
   const toggleBold = () => editor?.chain().focus().toggleBold().run();
   const toggleItalic = () => editor?.chain().focus().toggleItalic().run();
@@ -161,23 +161,30 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       onExport(format);
     } else {
       let content = '';
+      let mimeType = 'text/plain';
       switch (format) {
         case 'html':
           content = editor?.getHTML() || '';
+          mimeType = 'text/html';
           break;
         case 'text':
           content = editor?.getText() || '';
+          mimeType = 'text/plain';
           break;
         case 'markdown':
           content = editor?.getText() || '';
+          mimeType = 'text/markdown';
           break;
       }
-      const blob = new Blob([content], { type: 'text/plain' });
+      const blob = new Blob([content], { type: mimeType });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `manuscript.${format}`;
-      a.click();
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `manuscript.${format}`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       URL.revokeObjectURL(url);
     }
   };

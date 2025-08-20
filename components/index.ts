@@ -15,6 +15,8 @@ export { CenteredPageLayout } from './layout/CenteredPageLayout';
 // Editor Components
 export { MarkdownEditor } from './editor/MarkdownEditor';
 export { RichTextEditor } from './editor/RichTextEditor';
+export { SafeMarkdownEditor } from './editor/SafeMarkdownEditor';
+export { SafeRichTextEditor } from './editor/SafeRichTextEditor';
 
 // Navigation Components
 export { WorldBibleTree } from './navigation/WorldBibleTree';
@@ -39,4 +41,4 @@ export { default as ProjectInfoPanel } from './project/ProjectInfoPanel';
 export { default as DocumentTabs } from './project/DocumentTabs';
 
 // Utility Components
-export { ErrorBoundary, withErrorBoundary } from './ErrorBoundary';
+export { ErrorBoundary, withErrorBoundary } from './ui/ErrorBoundary';

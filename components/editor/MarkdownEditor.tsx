@@ -58,7 +58,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   frontmatterSupport = false,
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('edit');
-  const [autoSaveTimer, setAutoSaveTimer] = useState<NodeJS.Timeout | null>(null);
+  const autoSaveTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [frontmatter, setFrontmatter] = useState<string>('');
   const [content, setContent] = useState<string>(value);
@@ -100,18 +100,17 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       }
 
       if (autoSave && onSave) {
-        if (autoSaveTimer) {
-          clearTimeout(autoSaveTimer);
+        if (autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
         }
-        const timer = setTimeout(() => {
+        autoSaveTimerRef.current = setTimeout(() => {
           setIsSaving(true);
           onSave();
           setTimeout(() => setIsSaving(false), 1000);
         }, autoSaveDelay);
-        setAutoSaveTimer(timer);
       }
     },
-    [frontmatter, frontmatterSupport, onChange, autoSave, onSave, autoSaveDelay, autoSaveTimer]
+    [frontmatter, frontmatterSupport, onChange, autoSave, onSave, autoSaveDelay]
   );
 
   useEffect(() => {
@@ -128,11 +127,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
   useEffect(() => {
     return () => {
-      if (autoSaveTimer) {
-        clearTimeout(autoSaveTimer);
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
       }
     };
-  }, [autoSaveTimer]);
+  }, []);
 
   const toggleBold = () => editor?.chain().focus().toggleBold().run();
   const toggleItalic = () => editor?.chain().focus().toggleItalic().run();

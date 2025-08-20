@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useTransition } from 'react';
 import {
   Box,
   VStack,
@@ -90,6 +90,7 @@ export const KnowledgeTrackingPanel: React.FC<KnowledgeTrackingPanelProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditMode, setIsEditMode] = useState(false);
   const [pendingUpdates, setPendingUpdates] = useState<Map<string, KnowledgeStatus>>(new Map());
+  const [isPending, startTransition] = useTransition();
 
   const getKnowledgeKey = (characterId: string, documentId: string) =>
     `${characterId}-${documentId}`;
@@ -109,25 +110,25 @@ export const KnowledgeTrackingPanel: React.FC<KnowledgeTrackingPanelProps> = ({
   );
 
   const filteredCharacters = useMemo(() => {
-    let chars = characters;
-    if (filterCharacter) {
-      chars = chars.filter((c) => c.id === filterCharacter);
-    }
-    if (searchTerm) {
-      chars = chars.filter((c) => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    }
-    return chars;
+    if (!filterCharacter && !searchTerm) return characters;
+
+    const searchLower = searchTerm.toLowerCase();
+    return characters.filter((c) => {
+      if (filterCharacter && c.id !== filterCharacter) return false;
+      if (searchTerm && !c.name.toLowerCase().includes(searchLower)) return false;
+      return true;
+    });
   }, [characters, filterCharacter, searchTerm]);
 
   const filteredDocuments = useMemo(() => {
-    let docs = documents;
-    if (filterDocument) {
-      docs = docs.filter((d) => d.id === filterDocument);
-    }
-    if (searchTerm) {
-      docs = docs.filter((d) => d.title.toLowerCase().includes(searchTerm.toLowerCase()));
-    }
-    return docs;
+    if (!filterDocument && !searchTerm) return documents;
+
+    const searchLower = searchTerm.toLowerCase();
+    return documents.filter((d) => {
+      if (filterDocument && d.id !== filterDocument) return false;
+      if (searchTerm && !d.title.toLowerCase().includes(searchLower)) return false;
+      return true;
+    });
   }, [documents, filterDocument, searchTerm]);
 
   const handleStatusChange = useCallback(
@@ -397,9 +398,10 @@ export const KnowledgeTrackingPanel: React.FC<KnowledgeTrackingPanelProps> = ({
         <Input
           placeholder="Search..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => startTransition(() => setSearchTerm(e.target.value))}
           size="sm"
           flex={1}
+          disabled={isPending}
         />
         <select
           value={filterCharacter}
