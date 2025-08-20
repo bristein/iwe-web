@@ -8,8 +8,11 @@ dotenv.config({ path: resolve(__dirname, '.env'), override: false });
 
 export default defineConfig({
   test: {
-    // Test directory for API tests
-    include: ['tests/api/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    // Test directories for API and unit tests
+    include: [
+      'tests/api/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+      'tests/unit/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+    ],
 
     // Test environment setup
     environment: 'node',
