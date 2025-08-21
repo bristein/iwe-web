@@ -13,6 +13,7 @@
     "setup-content-indexes": "ts-node --project tests/tsconfig.json -r dotenv/config scripts/setup-content-indexes.ts",
     "test": "pnpm run test:api && pnpm run test:e2e",
     "test:all": "pnpm run test:unit && pnpm run test:api && pnpm run test:e2e",
+    "test:parallel": "node scripts/test-parallel-setup.js",
     "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:unit:watch": "vitest --config vitest.unit.config.ts",
     "test:api": "vitest run",
@@ -20,6 +21,7 @@
     "test:api:coverage": "vitest run --coverage",
     "test:api:ui": "vitest --ui",
     "test:e2e": "playwright test",
+    "test:e2e:fast": "playwright test --workers=max",
     "test:e2e:integration": "playwright test --project=integration",
     "test:e2e:mobile": "playwright test --project=mobile-chrome",
     "test:e2e:debug": "playwright test --debug",
@@ -28,6 +30,7 @@
     "test:cleanup": "ts-node --project tests/tsconfig.json -r dotenv/config tests/utils/db-cleanup.ts",
     "db:list": "ts-node --project tests/tsconfig.json -r dotenv/config tests/utils/db-cleanup.ts list",
     "db:clean": "ts-node --project tests/tsconfig.json -r dotenv/config tests/utils/db-cleanup.ts clean-all",
+    "db:test-setup": "DEBUG=true node scripts/test-parallel-setup.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"
