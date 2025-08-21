@@ -6,12 +6,12 @@ export default defineConfig({
     // Test directory for unit tests only
     include: ['tests/unit/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
 
-    // Test environment
-    environment: 'node',
+    // Test environment for React components
+    environment: 'jsdom',
 
-    // No global setup needed for unit tests
+    // Setup files for React Testing Library
     globalSetup: undefined,
-    setupFiles: undefined,
+    setupFiles: ['tests/unit/setup.ts'],
 
     // Faster timeout for unit tests
     testTimeout: 5000,

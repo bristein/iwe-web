@@ -23,7 +23,9 @@
       "Bash(caddy:*)",
       "Bash(DISABLE_RATE_LIMIT=true pnpm dev)",
       "mcp__ide__getDiagnostics",
-      "WebFetch(domain:www.mongodb.com)"
+      "WebFetch(domain:www.mongodb.com)",
+      "Bash(timeout:*)",
+      "Bash(DEBUG=true pnpm playwright test tests/integration/auth/login.spec.ts --reporter=list)"
     ],
     "deny": [],
     "ask": []

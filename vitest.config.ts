@@ -8,11 +8,8 @@ dotenv.config({ path: resolve(__dirname, '.env'), override: false });
 
 export default defineConfig({
   test: {
-    // Test directories for API and unit tests
-    include: [
-      'tests/api/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-      'tests/unit/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-    ],
+    // Test directories for API tests only
+    include: ['tests/api/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
 
     // Test environment setup
     environment: 'node',
@@ -24,18 +21,26 @@ export default defineConfig({
     setupFiles: ['tests/api/setup/test-setup.ts'],
 
     // Test timeout
-    testTimeout: 20000, // Reduced from 30s - API tests should be fast
+    testTimeout: 15000, // Reduced timeout with optimized MongoDB setup
 
     // Hook timeout for setup/teardown
-    hookTimeout: 30000, // Reduced from 60s - startup should be faster
+    hookTimeout: 20000, // Faster startup with shared replica set
 
-    // Don't run tests in parallel by default for database isolation
-    // Individual test files can override this with `describe.concurrent`
+    // Enable parallel execution with worker isolation
     pool: 'forks',
     poolOptions: {
       forks: {
-        singleFork: true, // Use single fork for database isolation
+        singleFork: false, // Enable parallel execution
+        maxForks: process.env.CI ? 2 : 3, // Controlled parallelism
+        minForks: 1,
+        isolate: true, // Isolate test environments
       },
+    },
+
+    // Improve test execution performance
+    sequence: {
+      concurrent: true, // Run test files concurrently
+      shuffle: false, // Keep deterministic order for debugging
     },
 
     // Coverage configuration
@@ -69,8 +74,8 @@ export default defineConfig({
       json: './test-results/vitest-results.json',
     },
 
-    // Retry configuration
-    retry: process.env.CI ? 2 : 1,
+    // Retry configuration - reduced with better reliability
+    retry: process.env.CI ? 1 : 0,
 
     // Environment variables available in tests
     env: {
@@ -78,6 +83,19 @@ export default defineConfig({
       JWT_SECRET: process.env.JWT_SECRET || 'test-jwt-secret-key-for-testing-only',
       DISABLE_RATE_LIMIT: 'true',
       BASE_URL: 'http://localhost:3000',
+      // MongoDB optimization flags
+      MONGOMS_DISABLE_POSTINSTALL: 'true', // Speed up in CI
+      MONGOMS_DOWNLOAD_MIRROR: 'https://fastdl.mongodb.org',
+      MONGOMS_VERSION: '7.0.14',
+    },
+
+    // Performance optimizations
+    logHeapUsage: process.env.CI === 'true', // Monitor memory in CI
+    isolate: true, // Ensure test isolation
+    
+    // Test file patterns for better discovery
+    typecheck: {
+      enabled: false, // Disable typecheck during test runs for speed
     },
   },
 

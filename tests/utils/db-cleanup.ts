@@ -17,7 +17,7 @@ export interface CleanupOptions {
 }
 
 /**
- * Get a cached MongoDB client or create a new one
+ * Get a cached MongoDB client or create a new one with optimized settings
  */
 async function getClient(): Promise<MongoClient> {
   if (!cachedClient) {
@@ -25,29 +25,73 @@ async function getClient(): Promise<MongoClient> {
     if (!mongoUri) {
       throw new Error('MONGODB_URI environment variable is not set');
     }
-    cachedClient = new MongoClient(mongoUri);
-    await cachedClient.connect();
+    
+    cachedClient = new MongoClient(mongoUri, {
+      // Optimize for cleanup operations
+      maxPoolSize: 3, // Small pool for cleanup operations
+      minPoolSize: 1,
+      maxIdleTimeMS: 10000,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 10000,
+      connectTimeoutMS: 5000,
+      // Reduce resource usage
+      retryWrites: false, // No retries needed for cleanup
+      retryReads: false,
+      compressors: ['snappy'],
+      // Fast cleanup settings
+      waitQueueTimeoutMS: 3000,
+      monitorCommands: false,
+    });
+    
+    // Connect with timeout
+    const connectPromise = cachedClient.connect();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Connection timeout')), 8000)
+    );
+    
+    await Promise.race([connectPromise, timeoutPromise]);
   }
   return cachedClient;
 }
 
 /**
- * Close the cached client connection
+ * Close the cached client connection with timeout protection
  */
 export async function closeConnection(): Promise<void> {
   if (cachedClient) {
-    await cachedClient.close();
-    cachedClient = null;
+    try {
+      const closePromise = cachedClient.close();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Close timeout')), 3000)
+      );
+      
+      await Promise.race([closePromise, timeoutPromise]);
+    } catch (error) {
+      console.warn('Warning: Could not close cached client gracefully:', error);
+    } finally {
+      cachedClient = null;
+    }
   }
 }
 
 /**
- * Cleanup test users from the database
+ * Cleanup test users from the database with optimized operations
  */
 export async function cleanupTestUsers(options: CleanupOptions = {}) {
   const client = await getClient();
-  // Use the correct database name based on environment
-  const dbName = process.env.NODE_ENV === 'test' ? 'iwe-test' : 'iwe-backend';
+  
+  // Use worker-specific database name for true isolation
+  let dbName;
+  if (process.env.NODE_ENV === 'test') {
+    const workerId = process.env.TEST_WORKER_INDEX || 
+                    process.env.PLAYWRIGHT_WORKER_INDEX || 
+                    'default';
+    const workerHash = require('crypto').createHash('md5').update(`${workerId}-${process.env.CI || 'local'}`).digest('hex').slice(0, 8);
+    dbName = `iwe-test_w${workerId}_${workerHash}`;
+  } else {
+    dbName = 'iwe-backend';
+  }
+  
   const db = client.db(dbName);
   const usersCollection = db.collection('users');
 
@@ -100,7 +144,13 @@ export async function cleanupTestUsers(options: CleanupOptions = {}) {
   }
 
   try {
-    const result = await usersCollection.deleteMany(filter);
+    // Add timeout to delete operation
+    const deletePromise = usersCollection.deleteMany(filter);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Delete operation timeout')), 10000)
+    );
+    
+    const result = await Promise.race([deletePromise, timeoutPromise]) as { deletedCount: number };
     return result.deletedCount;
   } catch (error) {
     console.error('❌ Cleanup error:', error);
@@ -114,12 +164,24 @@ export async function cleanupTestUsers(options: CleanupOptions = {}) {
  */
 export async function getTestUsers() {
   const client = await getClient();
-  // Use the correct database name based on environment
-  const dbName = process.env.NODE_ENV === 'test' ? 'iwe-test' : 'iwe-backend';
+  
+  // Use worker-specific database name for true isolation
+  let dbName;
+  if (process.env.NODE_ENV === 'test') {
+    const workerId = process.env.TEST_WORKER_INDEX || 
+                    process.env.PLAYWRIGHT_WORKER_INDEX || 
+                    'default';
+    const workerHash = require('crypto').createHash('md5').update(`${workerId}-${process.env.CI || 'local'}`).digest('hex').slice(0, 8);
+    dbName = `iwe-test_w${workerId}_${workerHash}`;
+  } else {
+    dbName = 'iwe-backend';
+  }
+  
   const db = client.db(dbName);
   const usersCollection = db.collection('users');
 
-  const users = await usersCollection
+  // Add timeout to find operation
+  const findPromise = usersCollection
     .find({
       $or: [
         // Use same specific patterns as cleanup
@@ -134,11 +196,18 @@ export async function getTestUsers() {
         { email: { $regex: /^test-\d{13}@/i } },
       ],
     })
+    .limit(1000) // Prevent excessive results
     .toArray();
+    
+  const timeoutPromise = new Promise((_, reject) => 
+    setTimeout(() => reject(new Error('Find operation timeout')), 5000)
+  );
+  
+  const users = await Promise.race([findPromise, timeoutPromise]) as any[];
 
   try {
     console.log(`📊 Found ${users.length} test user(s)`);
-    users.forEach((user) => {
+    users.forEach((user: any) => {
       console.log(`  - ${user.email} (${user.name})`);
     });
 
